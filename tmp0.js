@@ -1,97 +1,4 @@
-{% extends 'base.html' %}
 
-{% block title %}Mapa Interactivo | Solo PIN{% endblock %}
-
-{% block content %}
-<div class="glass-panel map-container" style="padding: 0; height: calc(100vh - 120px); overflow: hidden; position: relative; border-radius: 20px;">
-    
-    <!-- Controles de Capas flotantes con estilo Glassmorphism -->
-    <div id="map-controls" class="map-controls-panel" style="position: absolute; top: 20px; right: 20px; z-index: 1000; width: 280px; padding: 15px; max-height: calc(100vh - 160px); overflow-y: auto;">
-        <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">
-            <i class="fa-solid fa-layer-group" style="color: var(--primary-color); margin-right: 8px;"></i>
-            Capas del Mapa
-        </h3>
-        
-        <div class="layer-toggles">
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
-                <input type="checkbox" id="toggle-truck-stops" checked style="margin-right: 10px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-bed" style="color: #8b5cf6; width: 20px;"></i> Truck Stops / Zonas de Parqueo</span>
-            </label>
-            
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
-                <input type="checkbox" id="toggle-wim" checked style="margin-right: 10px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-scale-balanced" style="color: #f59e0b; width: 20px;"></i> Estaciones WIM</span>
-            </label>
-            
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
-                <input type="checkbox" id="toggle-tires" checked style="margin-right: 10px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-circle-notch" style="color: #ef4444; width: 20px;"></i> Talleres Llantas</span>
-            </label>
-
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
-                <input type="checkbox" id="toggle-fuel" checked style="margin-right: 10px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-gas-pump" style="color: #10b981; width: 20px;"></i> Estaciones Combustible</span>
-            </label>
-
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
-                <input type="checkbox" id="toggle-recycling" checked style="margin-right: 10px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-recycle" style="color: #8b5cf6; width: 20px;"></i> Reciclaje Llantas</span>
-            </label>
-
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
-                <input type="checkbox" id="toggle-routes" checked style="margin-right: 10px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-route" style="color: #0ea5e9; width: 20px;"></i> Rutas NHS (Corredores)</span>
-            </label>
-            <!-- Leyenda de colores para rutas -->
-            <div id="routes-legend" style="margin-left: 30px; margin-bottom: 12px; font-size: 11px; color: var(--text-muted);">
-                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:3px;background:#0ea5e9;border-radius:2px;"></div> Interestatales</div>
-                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:3px;background:#f59e0b;border-radius:2px;"></div> Nacionales (US)</div>
-                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:3px;background:#10b981;border-radius:2px;"></div> Estatales</div>
-                <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px;height:3px;background:#8b5cf6;border-radius:2px;"></div> Terciarias/Locales</div>
-            </div>
-            
-            <hr style="border: 0; border-top: 1px solid var(--border-strong); margin: 15px 0;">
-
-            <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 14px;">
-                <i class="fa-solid fa-mug-hot" style="color: var(--primary-color); margin-right: 8px;"></i>
-                Capas de Comodidades
-            </h3>
-
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" id="toggle-showers" checked style="margin-right: 8px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-shower" style="color: #60a5fa; width: 16px;"></i> Duchas</span>
-            </label>
-
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" id="toggle-restaurants" checked style="margin-right: 8px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-utensils" style="color: #fb923c; width: 16px;"></i> Restaurantes / Comida</span>
-            </label>
-
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" id="toggle-wifi" checked style="margin-right: 8px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-wifi" style="color: #a78bfa; width: 16px;"></i> WiFi</span>
-            </label>
-            
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" id="toggle-scales" checked style="margin-right: 8px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-weight-scale" style="color: #94a3b8; width: 16px;"></i> Báscula Pública</span>
-            </label>
-
-            <hr style="border: 0; border-top: 1px solid var(--border-strong); margin: 15px 0;">
-            
-            <div id="loading-indicator" style="font-size: 12px; color: var(--text-muted); text-align: center; font-weight: 500;">
-                <i class="fa-solid fa-circle-notch fa-spin"></i> Cargando millones de datos...
-            </div>
-        </div>
-    </div>
-
-    <!-- El contenedor del mapa Leaflet -->
-    <div id="main-map" style="width: 100%; height: 100%;"></div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
     // Inicializar el mapa centrado en Estados Unidos
     const map = L.map('main-map', {
         zoomControl: false, // Quitamos el default para ponerlo mejor
@@ -158,9 +65,7 @@
     // Agregar todas las capas al mapa inicialmente
     // Usamos condicionales para asegurar que respeten el checkbox si el usuario lo desmarcó rápido
     Object.keys(clusters).forEach(key => {
-        let toggleId = 'toggle-' + key.replace('_', '-');
-        if (key === 'truck_stops') toggleId = 'toggle-truck-stops';
-        if (key === 'alt_fuel') toggleId = 'toggle-fuel';
+        const toggleId = 'toggle-' + key.replace('_', '-').replace('stops', 'truck-stops');
         const toggle = document.getElementById(toggleId);
         if (toggle && toggle.checked) {
             map.addLayer(clusters[key]);
@@ -457,9 +362,7 @@
         // Validación de estado de checkboxes una vez que todo cargó
         // Si el usuario apagó algún checkbox mientras cargaba, lo quitamos del mapa.
         Object.keys(clusters).forEach(key => {
-            let toggleId = 'toggle-' + key.replace('_', '-');
-            if (key === 'truck_stops') toggleId = 'toggle-truck-stops';
-            if (key === 'alt_fuel') toggleId = 'toggle-fuel';
+            const toggleId = 'toggle-' + key.replace('_', '-').replace('stops', 'truck-stops').replace('tires', 'tires').replace('alt_fuel', 'alt-fuel');
             const toggle = document.getElementById(toggleId);
             if (toggle && !toggle.checked) {
                 map.removeLayer(clusters[key]);
@@ -515,32 +418,3 @@
     // Iniciar carga
     loadAllData();
 
-</script>
-
-<style>
-    /* Ajustes específicos para los popups de Leaflet dentro del ecosistema Dark Mode/Glassmorphism */
-    .leaflet-popup-content-wrapper {
-        background: var(--glass-bg);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid var(--glass-border);
-        border-radius: 12px;
-        color: var(--text-color);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    }
-    .leaflet-popup-tip {
-        background: var(--glass-bg);
-    }
-    .leaflet-container a.leaflet-popup-close-button {
-        color: var(--text-color);
-    }
-    .map-popup {
-        padding: 5px;
-    }
-    
-    /* Efecto Neón para las rutas en Dark Mode optimizado */
-    [data-theme="dark"] .neon-route {
-        opacity: 0.9 !important;
-    }
-</style>
-{% endblock %}
