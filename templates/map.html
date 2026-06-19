@@ -248,12 +248,47 @@
 
                     // Generar marcadores independientes para cada amenidad en la misma coordenada
                     if (loc.amenities && loc.amenities.length > 0) {
-                        loc.amenities.forEach(am => {
+                        // Agrupar restaurantes para evitar m├║ltiples iconos en la misma coordenada
+                        const restaurantsList = loc.amenities.filter(am => am.includes('Restaurant') || am.includes('Comida:'));
+                        const otherAmenities = loc.amenities.filter(am => !(am.includes('Restaurant') || am.includes('Comida:')));
+                        
+                        // Procesar restaurantes agrupados
+                        if (restaurantsList.length > 0) {
+                            let displayTitle = restaurantsList.length > 1 ? 'Zona de Restaurantes' : (restaurantsList[0].includes(':') ? restaurantsList[0].split(':')[1].trim() : restaurantsList[0]);
+                            let displayOperator = `Ubicado en: ${loc.name} (${loc.operator})`;
+
+                            if (loc.name === 'Unknown Truck Stop' && loc.operator === 'Public Rest Stop') {
+                                displayTitle = restaurantsList.length > 1 ? '├ürea de Comidas' : 'Restaurante';
+                                displayOperator = 'Parador Comercial / P├║blico';
+                            }
+
+                            let amPopup = `<div class="map-popup">
+                                <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${displayTitle}</h3>
+                                <p style="margin:0 0 10px 0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${displayOperator}</p>`;
+                            
+                            if (restaurantsList.length > 1) {
+                                amPopup += `<p style="margin:0 0 5px 0; font-size:12px; font-weight:bold;">Opciones disponibles:</p>`;
+                                const chips = restaurantsList.map(r => {
+                                    const rName = r.includes(':') ? r.split(':')[1].trim() : r;
+                                    return `<span style="display:inline-block; background:#ffedd5; border:1px solid var(--border-color); padding:3px 8px; border-radius:12px; font-size:11px; font-weight:500; margin:3px 3px 0 0; color:#c2410c;">${rName}</span>`;
+                                }).join('');
+                                amPopup += `<div style="margin-bottom:5px;">${chips}</div>`;
+                            }
+                            
+                            amPopup += `</div>`;
+                            
+                            const customAmIcon = createIcon('fa-utensils', '#f97316');
+                            const amMarker = L.marker([loc.lat, loc.lon], { icon: customAmIcon })
+                                            .bindPopup(amPopup);
+                            clusters['restaurants'].addLayer(amMarker);
+                        }
+
+                        // Procesar el resto de amenidades
+                        otherAmenities.forEach(am => {
                             let targetLayer = null;
                             let iconType = null;
 
                             if (am.includes('Shower')) { targetLayer = 'showers'; iconType = 'shower'; }
-                            else if (am.includes('Restaurant') || am.includes('Comida:')) { targetLayer = 'restaurants'; iconType = 'restaurant'; }
                             else if (am.includes('WiFi')) { targetLayer = 'wifi'; iconType = 'wifi'; }
                             else if (am.includes('Scale')) { targetLayer = 'scales'; iconType = 'scale'; }
                             else if (am.includes('Tire')) { targetLayer = 'tires'; iconType = 'tire_shop'; }
@@ -275,9 +310,6 @@
                                 
                                 // Para amenidades, usar un color más neutro en el Spiderfy, o el mismo icono base
                                 let customAmIcon = icons[iconType];
-                                if (iconType === 'restaurant') {
-                                    customAmIcon = createIcon('fa-utensils', '#f97316');
-                                }
                                 
                                 const amMarker = L.marker([loc.lat, loc.lon], { icon: customAmIcon })
                                                 .bindPopup(amPopup);
