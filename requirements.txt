@@ -1,0 +1,22 @@
+# PIN Platform - Phase 1 bootstrap dependencies
+# This file is intentionally minimal so the first delivery can run on
+# a fresh Windows environment without compiling scientific packages.
+
+# Core Django
+Django==5.1.3
+djangorestframework==3.15.2
+django-cors-headers==4.6.0
+django-filter==24.3
+django-environ==0.11.2
+drf-spectacular==0.28.0
+
+# Base de Datos
+psycopg[binary]==3.3.4
+
+# ETL y Archivos
+openpyxl==3.1.5
+channels==4.0.0
+
+# Light utilities
+requests==2.32.3
+python-dateutil==2.9.0.post0

@@ -1,0 +1,42 @@
+{% load static %}
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <img src="{% static 'img/LOGO.jpeg' %}" alt="Ambientronika Logo" class="sidebar-logo">
+        <h2 class="sidebar-title">PIN</h2>
+    </div>
+    
+    <nav class="sidebar-nav">
+        <a href="{% url 'dashboard' %}" class="nav-item active">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="{% url 'map' %}" class="nav-item {% if request.resolver_match.url_name == 'map' %}active{% endif %}">
+            <i class="fa-solid fa-map-location-dot"></i>
+            <span>Mapa Operativo</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-truck-fast"></i>
+            <span>Rutas NHS</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-gas-pump"></i>
+            <span>Estaciones & Combustible</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-ring"></i>
+            <span>Centros de Llantas</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-scale-balanced"></i>
+            <span>Regulación & Peso</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>Monitoreo HOS</span>
+        </a>
+        <a href="#" class="nav-item" style="margin-top: auto;">
+            <i class="fa-solid fa-gear"></i>
+            <span>Configuración</span>
+        </a>
+    </nav>
+</aside>

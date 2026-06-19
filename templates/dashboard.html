@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard | PIN{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- KPIs -->
+    <div class="kpi-wrapper">
+        <div class="glass-card kpi-card">
+            <div class="kpi-icon blue">
+                <i class="fa-solid fa-truck"></i>
+            </div>
+            <div class="kpi-info">
+                <h3>Flota Activa</h3>
+                <div class="value">12,450</div>
+                <div class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +4.2% esta semana</div>
+            </div>
+        </div>
+        
+        <div class="glass-card kpi-card">
+            <div class="kpi-icon green">
+                <i class="fa-solid fa-leaf"></i>
+            </div>
+            <div class="kpi-info">
+                <h3>Ahorro CO2</h3>
+                <div class="value">845k Ton</div>
+                <div class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +12% vs mes anterior</div>
+            </div>
+        </div>
+
+        <div class="glass-card kpi-card">
+            <div class="kpi-icon yellow">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="kpi-info">
+                <h3>Alertas HOS</h3>
+                <div class="value">34</div>
+                <div class="trend down"><i class="fa-solid fa-arrow-trend-down"></i> -2% vs ayer</div>
+            </div>
+        </div>
+
+        <div class="glass-card kpi-card">
+            <div class="kpi-icon purple">
+                <i class="fa-solid fa-map-pin"></i>
+            </div>
+            <div class="kpi-info">
+                <h3>Estaciones Analizadas</h3>
+                <div class="value">1,204</div>
+                <div class="trend up"><i class="fa-solid fa-check"></i> 100% Cobertura</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mapa Interactivo -->
+    <div class="glass-card map-widget">
+        <div class="widget-header" style="position: absolute; top: 1.5rem; left: 1.5rem; z-index: 10;">
+            <h3>Monitoreo Geoespacial en Tiempo Real</h3>
+        </div>
+        <div class="map-placeholder">
+            <div class="pulse-node"></div>
+            <h2 style="margin-top: 1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Mapa Inmersivo (Cargando Capas GIS...)</h2>
+            <p>Rutas NHS • Truck Stops • WIM Stations</p>
+        </div>
+    </div>
+
+    <!-- Panel Analítico -->
+    <div class="glass-card side-widget">
+        <div class="widget-header">
+            <h3>Eventos Críticos</h3>
+            <button class="action-btn" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fa-solid fa-ellipsis-v"></i></button>
+        </div>
+        <div class="activity-list">
+            <div class="activity-item">
+                <div class="activity-icon" style="color: #ef4444; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-weight-hanging"></i></div>
+                <div class="activity-text">
+                    <h4>Exceso de Peso Detectado</h4>
+                    <p>WIM Station TX-45 • Hace 2 min</p>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon" style="color: #f59e0b; background: rgba(245,158,11,0.1);"><i class="fa-solid fa-tire"></i></div>
+                <div class="activity-text">
+                    <h4>Desgaste Crítico Llantas</h4>
+                    <p>Unidad 402 • Predictivo a 500mi</p>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon" style="color: #10b981; background: rgba(16,185,129,0.1);"><i class="fa-solid fa-leaf"></i></div>
+                <div class="activity-text">
+                    <h4>Ruta Eco-Optimizada</h4>
+                    <p>Flota Oeste • Ahorro 12% Combustible</p>
+                </div>
+            </div>
+            <div class="activity-item">
+                <div class="activity-icon"><i class="fa-solid fa-clock"></i></div>
+                <div class="activity-text">
+                    <h4>Alerta HOS Preventiva</h4>
+                    <p>Conductor JD • Límite 11h próximo</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

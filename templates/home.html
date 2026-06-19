@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}PIN | Inteligencia Ambiental y Logística{% endblock %}
+
+{% block layout %}
+<div class="hero-wrapper">
+    <nav class="landing-nav">
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <img src="{% static 'img/LOGO.jpeg' %}" alt="Ambientronika" style="height: 80px; width: auto; object-fit: contain; border-radius: 8px;">
+            <strong style="font-family: 'Montserrat'; font-size: 2.2rem; font-weight: 800; letter-spacing: 2px; background: linear-gradient(135deg, var(--brand-blue), var(--brand-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 15px rgba(0, 175, 239, 0.2);">PIN</strong>
+        </div>
+        <div style="display: flex; gap: 2rem; align-items: center;">
+            <a href="#" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">Soluciones</a>
+            <a href="#" style="color: var(--text-primary); text-decoration: none; font-weight: 500;">Tecnología</a>
+            <a href="{% url 'login' %}" class="btn-secondary" style="padding: 0.5rem 1.2rem;">Iniciar Sesión</a>
+            <a href="{% url 'dashboard' %}" class="btn-primary" style="padding: 0.5rem 1.2rem;">Ver Demo</a>
+        </div>
+    </nav>
+
+    <main class="hero-content">
+        <div class="hero-text">
+            <div class="tagline">
+                <i class="fa-solid fa-earth-americas"></i> Big Data & Sostenibilidad Logística
+            </div>
+            <h1>Inteligencia Geoespacial para el Transporte Pesado</h1>
+            <p>
+                Optimiza rutas, monitorea desgaste de llantas en tiempo real, asegura cumplimiento HOS y reduce la huella de carbono de tu flota con análisis predictivo impulsado por IA.
+            </p>
+            <div class="hero-actions">
+                <a href="{% url 'login' %}" class="btn-primary" style="text-align: center; text-decoration: none;">Ingresar a la Plataforma</a>
+                <a href="#features" class="btn-secondary">Explorar Módulos</a>
+            </div>
+        </div>
+        
+        <div class="hero-visual">
+            <div class="floating-glass">
+                <h3 style="margin-bottom: 1rem; color: var(--brand-blue);"><i class="fa-solid fa-satellite-dish"></i> Telemetría en Vivo</h3>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="flex: 1; background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--brand-green);">18</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Sensores IoT</div>
+                    </div>
+                    <div style="flex: 1; background: rgba(0,0,0,0.05); padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--brand-yellow);">16</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Datasets Core</div>
+                    </div>
+                </div>
+                <p style="font-size: 0.9rem; color: var(--text-secondary);">Análisis de WIM, Estaciones, Llantas y Rutas NHS integrado en un solo ecosistema SaaS premium.</p>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

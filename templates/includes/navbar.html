@@ -1,0 +1,21 @@
+{% load static %}
+<header class="top-navbar">
+    <div class="search-bar">
+        <i class="fa-solid fa-search" style="color: var(--text-muted);"></i>
+        <input type="text" placeholder="Buscar estación, ruta o carrier...">
+    </div>
+    
+    <div class="top-actions">
+        <button class="action-btn" onclick="toggleTheme()" title="Cambiar Tema">
+            <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="action-btn" title="Notificaciones">
+            <i class="fa-solid fa-bell"></i>
+        </button>
+        <div class="user-profile">
+            <div class="avatar">GA</div>
+            <span style="font-weight: 500; font-size: 0.9rem;">Admin</span>
+            <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: var(--text-muted);"></i>
+        </div>
+    </div>
+</header>
