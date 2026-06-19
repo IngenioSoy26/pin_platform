@@ -54,6 +54,8 @@ if ENABLE_GIS:
 LOCAL_APPS = [
     "apps.core",
     "apps.data_ingestion",
+    "apps.devices",
+    "apps.tires",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
