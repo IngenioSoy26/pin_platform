@@ -57,6 +57,7 @@ LOCAL_APPS = [
     "apps.devices",
     "apps.tires",
     "apps.hos_monitoring",
+    "apps.weight_monitoring",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
