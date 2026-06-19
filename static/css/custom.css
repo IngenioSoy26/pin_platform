@@ -136,7 +136,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-header {
-    padding: 1.5rem;
+    padding: 1.5rem 1rem;
     display: flex;
     flex-direction: column; /* Volvemos a apilado */
     align-items: center;
@@ -147,12 +147,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-logo {
-    height: 90px; /* Tamaño gigante restaurado */
-    width: auto;
-    max-width: 100%;
+    height: auto;
+    width: 100%;
+    max-width: 220px;
     border-radius: 8px;
     object-fit: contain;
-    margin-bottom: -5px; /* Margen negativo para acercar más al texto */
+    margin-bottom: 5px;
 }
 
 .sidebar-title {
