@@ -6,7 +6,7 @@
 <div class="glass-panel map-container" style="padding: 0; height: calc(100vh - 120px); overflow: hidden; position: relative; border-radius: 20px;">
     
     <!-- Controles de Capas flotantes con estilo Glassmorphism -->
-    <div id="map-controls" class="glass-panel" style="position: absolute; top: 20px; right: 20px; z-index: 1000; width: 280px; padding: 15px; max-height: calc(100vh - 160px); overflow-y: auto;">
+    <div id="map-controls" class="map-controls-panel" style="position: absolute; top: 20px; right: 20px; z-index: 1000; width: 280px; padding: 15px; max-height: calc(100vh - 160px); overflow-y: auto;">
         <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 16px;">
             <i class="fa-solid fa-layer-group" style="color: var(--primary-color); margin-right: 8px;"></i>
             Capas del Mapa
@@ -29,8 +29,8 @@
             </label>
 
             <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
-                <input type="checkbox" id="toggle-alt-fuel" checked style="margin-right: 10px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-charging-station" style="color: #10b981; width: 20px;"></i> Combustible Alt.</span>
+                <input type="checkbox" id="toggle-fuel" checked style="margin-right: 10px; accent-color: var(--primary-color);">
+                <span><i class="fa-solid fa-gas-pump" style="color: #10b981; width: 20px;"></i> Estaciones Combustible</span>
             </label>
 
             <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
@@ -38,12 +38,19 @@
                 <span><i class="fa-solid fa-recycle" style="color: #8b5cf6; width: 20px;"></i> Reciclaje Llantas</span>
             </label>
 
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 12px; cursor: pointer;">
+            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
                 <input type="checkbox" id="toggle-routes" checked style="margin-right: 10px; accent-color: var(--primary-color);">
                 <span><i class="fa-solid fa-route" style="color: #0ea5e9; width: 20px;"></i> Rutas NHS (Corredores)</span>
             </label>
+            <!-- Leyenda de colores para rutas -->
+            <div id="routes-legend" style="margin-left: 30px; margin-bottom: 12px; font-size: 11px; color: var(--text-muted);">
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:3px;background:#0ea5e9;border-radius:2px;"></div> Interestatales</div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:3px;background:#f59e0b;border-radius:2px;"></div> Nacionales (US)</div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:3px;background:#10b981;border-radius:2px;"></div> Estatales</div>
+                <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px;height:3px;background:#8b5cf6;border-radius:2px;"></div> Terciarias/Locales</div>
+            </div>
             
-            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
+            <hr style="border: 0; border-top: 1px solid var(--border-strong); margin: 15px 0;">
 
             <h3 style="margin-top: 0; margin-bottom: 15px; font-size: 14px;">
                 <i class="fa-solid fa-mug-hot" style="color: var(--primary-color); margin-right: 8px;"></i>
@@ -70,19 +77,9 @@
                 <span><i class="fa-solid fa-weight-scale" style="color: #94a3b8; width: 16px;"></i> Báscula Pública</span>
             </label>
 
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" id="toggle-parking" checked style="margin-right: 8px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-square-parking" style="color: #64748b; width: 16px;"></i> Zonas de Parqueo</span>
-            </label>
+            <hr style="border: 0; border-top: 1px solid var(--border-strong); margin: 15px 0;">
             
-            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer; font-size: 13px;">
-                <input type="checkbox" id="toggle-diesel" checked style="margin-right: 8px; accent-color: var(--primary-color);">
-                <span><i class="fa-solid fa-gas-pump" style="color: #10b981; width: 16px;"></i> Islas Diésel</span>
-            </label>
-
-            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0;">
-            
-            <div id="loading-indicator" style="font-size: 12px; color: var(--text-muted); text-align: center;">
+            <div id="loading-indicator" style="font-size: 12px; color: var(--text-muted); text-align: center; font-weight: 500;">
                 <i class="fa-solid fa-circle-notch fa-spin"></i> Cargando millones de datos...
             </div>
         </div>
@@ -97,7 +94,8 @@
 <script>
     // Inicializar el mapa centrado en Estados Unidos
     const map = L.map('main-map', {
-        zoomControl: false // Quitamos el default para ponerlo mejor
+        zoomControl: false, // Quitamos el default para ponerlo mejor
+        preferCanvas: true  // CRÍTICO PARA RENDIMIENTO: Dibuja vectores en HTML5 Canvas en lugar de miles de nodos SVG
     }).setView([39.8283, -98.5795], 4);
     
     // Reposicionar el control de zoom para que no choque con el panel Glassmorphism
@@ -109,38 +107,58 @@
     const mapBoxLightUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
     const mapBoxDarkUrl = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
     
-    // Crear la capa base (tiles)
-    let baseLayer = L.tileLayer(document.documentElement.getAttribute('data-theme') === 'dark' ? mapBoxDarkUrl : mapBoxLightUrl, {
+    const tileOptions = {
         attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
         subdomains: 'abcd',
         maxZoom: 19
-    }).addTo(map);
+    };
+
+    // Crear ambas capas de forma independiente para transición fluida
+    let lightLayer = L.tileLayer(mapBoxLightUrl, tileOptions);
+    let darkLayer = L.tileLayer(mapBoxDarkUrl, tileOptions);
+
+    // Añadir la capa base inicial
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+        darkLayer.addTo(map);
+    } else {
+        lightLayer.addTo(map);
+    }
 
     // Escuchar el evento de cambio de tema (creado en base.html)
     window.addEventListener('themeChanged', () => {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        baseLayer.setUrl(isDark ? mapBoxDarkUrl : mapBoxLightUrl);
+        
+        // Estrategia de superposición (Cross-fade) para evitar bloqueos
+        // Añadimos la capa nueva por encima, y le damos 1 segundo al navegador para descargar 
+        // las imágenes antes de borrar la capa vieja. Así nunca se ve un fondo gris vacío.
+        if (isDark) {
+            darkLayer.addTo(map);
+            setTimeout(() => { if(map.hasLayer(lightLayer)) map.removeLayer(lightLayer); }, 1000);
+        } else {
+            lightLayer.addTo(map);
+            setTimeout(() => { if(map.hasLayer(darkLayer)) map.removeLayer(darkLayer); }, 1000);
+        }
     });
 
     // Crear grupos de marcadores agrupados (Clusters) para alto rendimiento
+    // showCoverageOnHover: false desactiva el polígono azul que envuelve el área del clúster
     const clusters = {
-        'truck_stops': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true }),
-        'wim': L.markerClusterGroup({ disableClusteringAtZoom: 10, chunkedLoading: true }),
-        'tires': L.markerClusterGroup({ disableClusteringAtZoom: 11, chunkedLoading: true }),
-        'alt_fuel': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true }),
-        'recycling': L.markerClusterGroup({ disableClusteringAtZoom: 9, chunkedLoading: true }),
-        'showers': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true }),
-        'restaurants': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true }),
-        'wifi': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true }),
-        'scales': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true }),
-        'parking': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true }),
-        'diesel': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true })
+        'truck_stops': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true, showCoverageOnHover: false }),
+        'wim': L.markerClusterGroup({ disableClusteringAtZoom: 10, chunkedLoading: true, showCoverageOnHover: false }),
+        'tires': L.markerClusterGroup({ disableClusteringAtZoom: 11, chunkedLoading: true, showCoverageOnHover: false }),
+        'alt_fuel': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true, showCoverageOnHover: false }),
+        'fuel': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true, showCoverageOnHover: false }),
+        'recycling': L.markerClusterGroup({ disableClusteringAtZoom: 9, chunkedLoading: true, showCoverageOnHover: false }),
+        'showers': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true, showCoverageOnHover: false }),
+        'restaurants': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true, showCoverageOnHover: false }),
+        'wifi': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true, showCoverageOnHover: false }),
+        'scales': L.markerClusterGroup({ disableClusteringAtZoom: 12, chunkedLoading: true, showCoverageOnHover: false })
     };
 
     // Agregar todas las capas al mapa inicialmente
     // Usamos condicionales para asegurar que respeten el checkbox si el usuario lo desmarcó rápido
     Object.keys(clusters).forEach(key => {
-        const toggleId = 'toggle-' + key.replace('_', '-').replace('stops', 'truck-stops').replace('tires', 'tires').replace('alt_fuel', 'alt-fuel');
+        const toggleId = 'toggle-' + key.replace('_', '-').replace('stops', 'truck-stops');
         const toggle = document.getElementById(toggleId);
         if (toggle && toggle.checked) {
             map.addLayer(clusters[key]);
@@ -160,10 +178,11 @@
         });
     }
 
+    // Iconos base para capas secundarias
     const icons = {
-        'truck_stop': createIcon('fa-truck', '#3b82f6'),
-        'wim': createIcon('fa-scale-balanced', '#f59e0b'),
-        'tire_shop': createIcon('fa-circle-notch', '#ef4444'),
+        'truck_stop': createIcon('fa-bed', '#8b5cf6'),
+        'wim': createIcon('fa-satellite-dish', '#3b82f6'),
+        'tire_shop': createIcon('fa-wrench', '#eab308'),
         'alt_fuel': createIcon('fa-charging-station', '#10b981'),
         'recycling': createIcon('fa-recycle', '#8b5cf6'),
         'shower': createIcon('fa-shower', '#60a5fa'),
@@ -171,8 +190,24 @@
         'wifi': createIcon('fa-wifi', '#a78bfa'),
         'scale': createIcon('fa-weight-scale', '#94a3b8'),
         'parking': createIcon('fa-square-parking', '#64748b'),
-        'diesel': createIcon('fa-gas-pump', '#10b981')
+        'fuel': createIcon('fa-gas-pump', '#10b981')
     };
+
+    // Función para obtener el ícono dinámico de Truck Stop según el operador
+    function getTruckStopIcon(operator) {
+        const op = (operator || '').toLowerCase();
+        let color = '#94a3b8'; // Gris por defecto (Paradores Públicos/Generales)
+        
+        if (op.includes('love')) {
+            color = '#ef4444'; // Rojo Love's
+        } else if (op.includes('pilot') || op.includes('flying j')) {
+            color = '#f97316'; // Naranja Pilot
+        } else if (op.includes('ta') || op.includes('petro') || op.includes('travelcenters')) {
+            color = '#3b82f6'; // Azul TA/Petro
+        }
+        
+        return createIcon('fa-bed', color);
+    }
 
     // Capa para las rutas NHS
     let routesLayer = null;
@@ -187,16 +222,42 @@
             const data = await response.json();
             
             data.locations.forEach(loc => {
+                const title = loc.name || 'Parada Sin Nombre';
                 let popupContent = `<div class="map-popup">
-                    <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${loc.name}</h3>`;
+                    <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${title}</h3>`;
                 
                 // Detalles específicos según el tipo
                 if(loc.type === 'truck_stop') {
-                    popupContent += `<p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${loc.operator}</p>`;
-                    popupContent += `<p style="margin:5px 0 0 0; font-size:13px;"><i class="fa-solid fa-square-parking"></i> ${loc.parking || 0} Espacios | <i class="fa-solid fa-gas-pump"></i> ${loc.diesel || 0} Islas Diésel</p></div>`;
-                    
+                    const operator = loc.operator || 'Operador Independiente';
+                    const cityState = (loc.city && loc.state) ? `${loc.city}, ${loc.state}` : 'Ubicación no registrada';
+
+                    // Manejo de valores nulos o 0
+                    const parkingText = (loc.parking && loc.parking > 0) ? `${loc.parking} Espacios` : 'No Disponible';
+                    const dieselText = (loc.diesel && loc.diesel > 0) ? `${loc.diesel} Islas Diésel` : 'No Disponible';
+
+                    popupContent += `<p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${operator}</p>`;
+                    popupContent += `<p style="margin:3px 0 8px 0; font-size:12px; color:var(--text-muted);"><i class="fa-solid fa-location-dot"></i> ${cityState}</p>`;
+                    popupContent += `<p style="margin:0; font-size:14px; font-weight:500; color:var(--text-color);"><i class="fa-solid fa-square-parking"></i> ${parkingText} | <i class="fa-solid fa-gas-pump"></i> ${dieselText}</p>`;
+
+                    // Añadir la lista de amenidades visuales (chips) al popup
+                    if (loc.amenities && loc.amenities.length > 0) {
+                        popupContent += `<div style="margin-top:10px; border-top:1px solid var(--border-color); padding-top:8px;">`;
+                        popupContent += `<p style="margin:0; font-size:12px; font-weight:bold; color:var(--text-color);">Servicios y Restaurantes:</p>`;
+                        const amenitiesList = loc.amenities.map(am => {
+                            let bg = 'var(--bg-color)';
+                            let color = 'var(--text-color)';
+                            if (am.includes('Comida:') || am.includes('Restaurante:')) {
+                                bg = '#ffedd5'; // Naranja muy suave
+                                color = '#c2410c'; // Texto naranja oscuro
+                            }
+                            return `<span style="display:inline-block; background:${bg}; border:1px solid var(--border-color); padding:3px 8px; border-radius:12px; font-size:11px; font-weight:500; margin:3px 3px 0 0; color:${color};">${am}</span>`;
+                        }).join('');
+                        popupContent += `<div style="margin-top:4px;">${amenitiesList}</div></div>`;
+                    }
+                    popupContent += `</div>`;
+
                     // Añadir el Truck Stop base (solo si el checkbox está activo, validado al final)
-                    const baseMarker = L.marker([loc.lat, loc.lon], { icon: icons['truck_stop'] })
+                    const baseMarker = L.marker([loc.lat, loc.lon], { icon: getTruckStopIcon(loc.operator) })
                                     .bindPopup(popupContent);
                     clusters['truck_stops'].addLayer(baseMarker);
 
@@ -207,50 +268,80 @@
                             let iconType = null;
 
                             if (am.includes('Shower')) { targetLayer = 'showers'; iconType = 'shower'; }
-                            else if (am.includes('Restaurant')) { targetLayer = 'restaurants'; iconType = 'restaurant'; }
+                            else if (am.includes('Restaurant') || am.includes('Comida:')) { targetLayer = 'restaurants'; iconType = 'restaurant'; }
                             else if (am.includes('WiFi')) { targetLayer = 'wifi'; iconType = 'wifi'; }
                             else if (am.includes('Scale')) { targetLayer = 'scales'; iconType = 'scale'; }
-                            else if (am.includes('Parking')) { targetLayer = 'parking'; iconType = 'parking'; }
                             else if (am.includes('Tire')) { targetLayer = 'tires'; iconType = 'tire_shop'; }
-                            else if (am.includes('Diesel') || am.includes('Fuel')) { targetLayer = 'diesel'; iconType = 'diesel'; }
+                            else if (am.includes('Diesel') || am.includes('Fuel')) { targetLayer = 'fuel'; iconType = 'fuel'; }
 
                             if (targetLayer) {
+                                // Mejora visual para los paradores genéricos del gobierno
+                                let displayTitle = loc.name;
+                                let displayOperator = loc.operator;
+                                if (loc.name === 'Unknown Truck Stop' && loc.operator === 'Public Rest Stop') {
+                                    displayTitle = 'Área de Descanso con ' + am;
+                                    displayOperator = 'Parador Comercial / Público';
+                                }
+
                                 let amPopup = `<div class="map-popup">
-                                    <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${loc.name} - ${am}</h3>
-                                    <p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${loc.operator}</p>
+                                    <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${displayTitle}</h3>
+                                    <p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${displayOperator}</p>
                                 </div>`;
-                                const amMarker = L.marker([loc.lat, loc.lon], { icon: icons[iconType] })
+                                
+                                // Para amenidades, usar un color más neutro en el Spiderfy, o el mismo icono base
+                                let customAmIcon = icons[iconType];
+                                if (iconType === 'restaurant') {
+                                    customAmIcon = createIcon('fa-utensils', '#f97316');
+                                }
+                                
+                                const amMarker = L.marker([loc.lat, loc.lon], { icon: customAmIcon })
                                                 .bindPopup(amPopup);
                                 clusters[targetLayer].addLayer(amMarker);
                             }
                         });
                     }
 
-                    // Si tiene espacios de parqueo pero no estaba en la lista de amenidades explícitas
-                    if (loc.parking > 0 && (!loc.amenities || !loc.amenities.some(a => a.includes('Parking')))) {
-                        let amPopup = `<div class="map-popup">
-                            <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${loc.name} - Estacionamiento</h3>
-                            <p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${loc.operator}</p>
-                            <p style="margin:5px 0 0 0; font-size:13px;"><i class="fa-solid fa-square-parking"></i> ${loc.parking} Espacios</p>
-                        </div>`;
-                        const parkMarker = L.marker([loc.lat, loc.lon], { icon: icons['parking'] })
-                                        .bindPopup(amPopup);
-                        clusters['parking'].addLayer(parkMarker);
-                    }
-
-                    // Si tiene islas diesel pero no estaba en la lista de amenidades explícitas
+                    // Aislamiento visual en modo Spiderfy para los surtidores de combustible (si no están en las amenidades)
                     if (loc.diesel > 0 && (!loc.amenities || !loc.amenities.some(a => a.includes('Diesel')))) {
+                        let displayTitle = loc.name;
+                        let displayOperator = loc.operator;
+                        if (loc.name === 'Unknown Truck Stop' && loc.operator === 'Public Rest Stop') {
+                            displayTitle = 'Estación de Combustible';
+                            displayOperator = 'Parador Comercial';
+                        }
                         let amPopup = `<div class="map-popup">
-                            <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${loc.name} - Diésel</h3>
-                            <p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${loc.operator}</p>
+                            <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">${displayTitle}</h3>
+                            <p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${displayOperator}</p>
                             <p style="margin:5px 0 0 0; font-size:13px;"><i class="fa-solid fa-gas-pump"></i> ${loc.diesel} Islas Diésel</p>
                         </div>`;
-                        const dieselMarker = L.marker([loc.lat, loc.lon], { icon: icons['diesel'] })
+                        const fuelMarker = L.marker([loc.lat, loc.lon], { icon: icons['fuel'] })
                                         .bindPopup(amPopup);
-                        clusters['diesel'].addLayer(dieselMarker);
+                        clusters['fuel'].addLayer(fuelMarker);
                     }
                     
                     return; // Terminamos con truck_stops, continuamos con el foreach
+                } else if(loc.type === 'alt_fuel') {
+                    const cng = (loc.cng_dispensers && loc.cng_dispensers > 0) ? `${loc.cng_dispensers} Surtidores GNC` : '';
+                    const ev = (loc.ev_dc_fast && loc.ev_dc_fast > 0) ? `${loc.ev_dc_fast} Cargadores EV Rápidos` : '';
+                    const fuelInfo = [cng, ev].filter(Boolean).join(' | ') || 'Estación Alt Fuel';
+
+                    popupContent += `<p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-building"></i> ${loc.operator || 'Operador Independiente'}</p>`;
+                    popupContent += `<p style="margin:3px 0 8px 0; font-size:12px; color:var(--text-muted);"><i class="fa-solid fa-location-dot"></i> ${loc.city || 'No Registrada'}, ${loc.state || 'NA'}</p>`;
+                    popupContent += `<p style="margin:0; font-size:14px; font-weight:500; color:var(--text-color);"><i class="fa-solid fa-bolt"></i> ${fuelInfo}</p>`;
+
+                    if (loc.amenities && loc.amenities.length > 0) {
+                        popupContent += `<div style="margin-top:10px; border-top:1px solid var(--border-color); padding-top:8px;">`;
+                        popupContent += `<p style="margin:0; font-size:12px; font-weight:bold; color:var(--text-color);">Amenidades Disponibles:</p>`;
+                        const amenitiesList = loc.amenities.map(am => `<span style="display:inline-block; background:var(--bg-color); border:1px solid var(--border-color); padding:2px 6px; border-radius:12px; font-size:11px; margin:2px 2px 0 0; color:var(--text-color);">${am}</span>`).join('');
+                        popupContent += `<div style="margin-top:4px;">${amenitiesList}</div></div>`;
+                    }
+
+                    popupContent += `</div>`;
+
+                    const marker = L.marker([loc.lat, loc.lon], { icon: icons['alt_fuel'] })
+                                    .bindPopup(popupContent);
+                    clusters['fuel'].addLayer(marker);
+                    return;
                 } else if(loc.type === 'wim') {
                     popupContent += `<p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-satellite-dish"></i> Status: ${loc.status}</p>`;
                 } else if(loc.type === 'recycling') {
@@ -296,22 +387,50 @@
                 const geojResponse = await fetch(data.url);
                 const geojsonData = await geojResponse.json();
                 
-                // Estilo neón para las rutas
-                const routeStyle = {
-                    color: '#0ea5e9',
-                    weight: 3,
-                    opacity: 0.6,
-                    className: 'neon-route'
+                // Estilos dinámicos para las rutas según su clasificación (t)
+                const routeStyle = function(feature) {
+                    let color = '#94a3b8'; // Default / Terciarias
+                    let weight = 1.5;
+                    let opacity = 0.5;
+                    let className = '';
+
+                    if (feature.properties.t === 'I') {
+                        color = '#0ea5e9'; // Azul (Interestatal)
+                        weight = 3;
+                        opacity = 0.8;
+                        className = 'neon-route';
+                    } else if (feature.properties.t === 'U') {
+                        color = '#f59e0b'; // Amarillo (Nacional)
+                        weight = 2.5;
+                        opacity = 0.7;
+                    } else if (feature.properties.t === 'S') {
+                        color = '#10b981'; // Verde (Estatal)
+                        weight = 2;
+                        opacity = 0.6;
+                    } else {
+                        color = '#8b5cf6'; // Morado (Locales)
+                    }
+
+                    return {
+                        color: color,
+                        weight: weight,
+                        opacity: opacity,
+                        className: className
+                    };
                 };
 
                 routesLayer = L.geoJSON(geojsonData, {
                     style: routeStyle,
                     onEachFeature: function (feature, layer) {
                         if (feature.properties) {
+                            let typeName = 'Terciaria / Local';
+                            if (feature.properties.t === 'I') typeName = 'Interestatal';
+                            else if (feature.properties.t === 'U') typeName = 'Nacional (US)';
+                            else if (feature.properties.t === 'S') typeName = 'Estatal';
+
                             let popup = `<div class="map-popup">
-                                <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">Ruta NHS</h3>`;
-                            if (feature.properties.SIGNT1) popup += `<p style="margin:0; font-size:13px; color:var(--text-muted);">${feature.properties.SIGNT1}</p>`;
-                            if (feature.properties.LNAME) popup += `<p style="margin:5px 0 0 0; font-size:13px;"><i class="fa-solid fa-road"></i> ${feature.properties.LNAME}</p>`;
+                                <h3 style="margin:0 0 5px 0; color:var(--text-color); font-size:16px;">Ruta ${typeName}</h3>`;
+                            if (feature.properties.n) popup += `<p style="margin:5px 0 0 0; font-size:13px;"><i class="fa-solid fa-road"></i> ${feature.properties.n}</p>`;
                             popup += `</div>`;
                             layer.bindPopup(popup);
                         }
@@ -380,8 +499,8 @@
     document.getElementById('toggle-tires').addEventListener('change', function(e) {
         e.target.checked ? map.addLayer(clusters.tires) : map.removeLayer(clusters.tires);
     });
-    document.getElementById('toggle-alt-fuel').addEventListener('change', function(e) {
-        e.target.checked ? map.addLayer(clusters.alt_fuel) : map.removeLayer(clusters.alt_fuel);
+    document.getElementById('toggle-fuel').addEventListener('change', function(e) {
+        e.target.checked ? map.addLayer(clusters.fuel) : map.removeLayer(clusters.fuel);
     });
     document.getElementById('toggle-recycling').addEventListener('change', function(e) {
         e.target.checked ? map.addLayer(clusters.recycling) : map.removeLayer(clusters.recycling);
@@ -404,12 +523,6 @@
     });
     document.getElementById('toggle-scales').addEventListener('change', function(e) {
         e.target.checked ? map.addLayer(clusters.scales) : map.removeLayer(clusters.scales);
-    });
-    document.getElementById('toggle-parking').addEventListener('change', function(e) {
-        e.target.checked ? map.addLayer(clusters.parking) : map.removeLayer(clusters.parking);
-    });
-    document.getElementById('toggle-diesel').addEventListener('change', function(e) {
-        e.target.checked ? map.addLayer(clusters.diesel) : map.removeLayer(clusters.diesel);
     });
 
     // Iniciar carga
@@ -438,9 +551,8 @@
         padding: 5px;
     }
     
-    /* Efecto Neón para las rutas en Dark Mode */
+    /* Efecto Neón para las rutas en Dark Mode optimizado */
     [data-theme="dark"] .neon-route {
-        filter: drop-shadow(0 0 5px #0ea5e9) drop-shadow(0 0 8px #0ea5e9);
         opacity: 0.9 !important;
     }
 </style>

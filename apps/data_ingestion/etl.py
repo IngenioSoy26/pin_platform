@@ -126,10 +126,18 @@ def _process_truck_stops(reader, dataset_upload):
             name_lower = str(name).lower()
             if 'pilot' in name_lower or 'flying j' in name_lower:
                 operator = 'Pilot Flying J'
-            elif 'love' in name_lower:
+            elif 'love' in name_lower or 'love' in dataset_upload.file.name.lower():
                 operator = "Love's Travel Stops"
             elif 'ta' in name_lower or 'travelcenters' in name_lower or 'petro' in name_lower:
                 operator = 'TA / Petro'
+
+        # Mejorar nombre si es Love's y viene como Unknown
+        if operator == "Love's Travel Stops" and name == 'Unknown Truck Stop':
+            store_num = row.get('StoreNumber') or row.get('Store_Number') or ''
+            if store_num:
+                name = f"Love's Travel Stop #{store_num}"
+            else:
+                name = "Love's Travel Stop"
 
         # 1.5 Identificar Teléfono y Web
         phone = row.get('Phone') or row.get('Telephone') or row.get('Contact_Number') or row.get('Phone Number') or 'Sin Información'
@@ -164,7 +172,13 @@ def _process_truck_stops(reader, dataset_upload):
             
         # Identificar espacios de parqueo
         parking_spaces = 0
-        spaces_raw = row.get('Parking Spaces Count') or row.get('Truck_Parking_Spaces') or row.get('truck_parking_capacity') or row.get('TruckParking') or 0
+        spaces_raw = (row.get('Parking Spaces Count') or 
+                      row.get('Truck_Parking_Spaces') or 
+                      row.get('truck_parking_capacity') or 
+                      row.get('TruckParking') or 
+                      row.get('number_of_spots') or 
+                      row.get('ParkingSpaces') or 
+                      row.get('Truck Parking Spaces') or 0)
         try:
             parking_spaces = int(spaces_raw)
         except (ValueError, TypeError):
@@ -210,26 +224,60 @@ def _process_truck_stops(reader, dataset_upload):
             'WiFi': ['wifi', 'internet'],
         }
         
-        # Estrategia A: Si hay columnas específicas que dicen 'Yes'/'True' (Ej: Dataset NTAD)
+        # Estrategia A: Si hay columnas específicas que dicen 'Yes'/'True' o tienen números/nombres (Ej: Dataset NTAD, Locmaster)
         for col_name, value in row.items():
-            if not value: continue
+            if value is None or str(value).strip() == '':
+                continue
+                
             val_str = str(value).strip().lower()
-            if val_str in ['yes', 'y', 'true', '1', 't']:
-                for am_name, keywords in amenity_keywords.items():
-                    if any(k in str(col_name).lower() for k in keywords):
-                        amenity, _ = Amenity.objects.get_or_create(name=am_name)
-                        amenities_to_add.append(amenity)
-                        
-        # Estrategia B: Si hay una columna "Amenities" o "Services" separada por comas (Ej: Locmaster/Loves)
+            # Ignorar si es explícitamente "No", "0" o "False"
+            if val_str in ['0', 'n', 'no', 'false']:
+                continue
+                
+            # Si tiene cualquier otro valor (un 'yes', un número '11', o un texto 'Subway')
+            col_lower = str(col_name).lower()
+            for am_name, keywords in amenity_keywords.items():
+                if any(k in col_lower for k in keywords):
+                    amenity, _ = Amenity.objects.get_or_create(name=am_name)
+                    amenities_to_add.append(amenity)
+                    
+        # Excepciones específicas para nombres de columnas de restaurantes en TA/Petro
+        rest = row.get('Full Service Restaurant')
+        qsr = row.get('QSR(s)')
+        if (rest and str(rest).strip() and str(rest).strip().lower() not in ['n', 'no', '0']) or (qsr and str(qsr).strip() and str(qsr).strip().lower() not in ['n', 'no', '0']):
+            am, _ = Amenity.objects.get_or_create(name='Restaurant')
+            amenities_to_add.append(am)
+            
+            # Guardar el nombre específico
+            rests_list = []
+            if rest and str(rest).strip() and str(rest).strip().lower() not in ['n', 'no', '0']:
+                rests_list.append(str(rest).strip())
+            if qsr and str(qsr).strip() and str(qsr).strip().lower() not in ['n', 'no', '0']:
+                for r in str(qsr).split(','):
+                    rests_list.append(r.strip())
+                    
+            for r_clean in rests_list:
+                if r_clean:
+                    am_spec, _ = Amenity.objects.get_or_create(name=f"Comida: {r_clean}", defaults={'category': 'Restaurante Específico'})
+                    amenities_to_add.append(am_spec)
+            
+        # Estrategia B: Si hay una columna "Amenities" o "Services" separada por comas (Ej: Locmaster/Loves/Pilot)
         services_col = row.get('Amenities') or row.get('Services') or row.get('Facilities') or ''
-        # Estrategia C: Si hay una columna específica de Restaurantes separada por comas (Ej: Pilot)
+        # Estrategia C: Si hay una columna específica de Restaurantes separada por comas (Ej: Pilot / Love's)
         restaurants_col = row.get('Restaurants') or row.get('Restaurant') or ''
         
         if services_col or restaurants_col:
             services_str = str(services_col).lower() + " " + str(restaurants_col).lower()
-            # Si el campo de restaurantes tiene algún texto que no esté vacío, forzar la amenidad 'Restaurant'
-            if str(restaurants_col).strip() != '':
+            # Si el campo de restaurantes tiene algún texto que no esté vacío, forzar la amenidad genérica 'Restaurant'
+            if str(restaurants_col).strip() != '' and str(restaurants_col).strip().lower() not in ['none', 'n/a', 'no', '0']:
                 services_str += " restaurant "
+                
+                # También extraer los nombres específicos de los restaurantes
+                for r in str(restaurants_col).split(','):
+                    r_clean = r.strip()
+                    if r_clean and r_clean.lower() not in ['none', 'n/a', 'no', '0']:
+                        am_spec, _ = Amenity.objects.get_or_create(name=f"Comida: {r_clean}", defaults={'category': 'Restaurante Específico'})
+                        amenities_to_add.append(am_spec)
                 
             for am_name, keywords in amenity_keywords.items():
                 if any(k in services_str for k in keywords):
@@ -586,7 +634,7 @@ def _process_alt_fuel(reader, dataset_upload):
         except (ValueError, TypeError):
             continue
             
-        AlternativeFuelStation.objects.update_or_create(
+        station, created = AlternativeFuelStation.objects.update_or_create(
             latitude=lat,
             longitude=lon,
             defaults={
@@ -605,5 +653,29 @@ def _process_alt_fuel(reader, dataset_upload):
                 'ev_dc_fast_count': ev_dc_fast
             }
         )
+
+        # Map Facility Type to Amenities
+        amenities_to_add = []
+        facility_type = str(row.get('Facility Type', '')).upper()
+        
+        if facility_type in ['TRAVEL_CENTER', 'TRUCK_STOP', 'REST_STOP']:
+            am, _ = Amenity.objects.get_or_create(name='Parador / Descanso', defaults={'category': 'Descanso'})
+            amenities_to_add.append(am)
+        elif facility_type in ['RESTAURANT', 'BREWERY_DISTILLERY_WINERY']:
+            am, _ = Amenity.objects.get_or_create(name='Restaurant', defaults={'category': 'Alimentación'})
+            amenities_to_add.append(am)
+        elif facility_type in ['CONVENIENCE_STORE', 'GROCERY', 'PHARMACY', 'RETAIL']:
+            am, _ = Amenity.objects.get_or_create(name='Tienda de Conveniencia', defaults={'category': 'Compras'})
+            amenities_to_add.append(am)
+        elif facility_type in ['AUTO_REPAIR', 'FLEET_GARAGE', 'CARWASH']:
+            am, _ = Amenity.objects.get_or_create(name='Taller / Lavado', defaults={'category': 'Mantenimiento'})
+            amenities_to_add.append(am)
+        elif facility_type in ['HOTEL', 'INN', 'B_AND_B', 'CAMPGROUND', 'RV_PARK']:
+            am, _ = Amenity.objects.get_or_create(name='Hospedaje', defaults={'category': 'Descanso'})
+            amenities_to_add.append(am)
+
+        if amenities_to_add:
+            station.amenities.add(*amenities_to_add)
+
         created_count += 1
     dataset_upload.processing_logs += f"Se importaron {created_count} estaciones de combustible alternativo (Exclusivas para Tractomulas / HD).\n"

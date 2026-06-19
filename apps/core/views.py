@@ -31,6 +31,10 @@ def api_locations(request):
         # Optimización con prefetch_related para amenidades
         stops = TruckStop.objects.prefetch_related('amenities').all()
         for s in stops:
+            # Enviar None explícitamente en lugar de 0 si no hay información
+            parking = s.parking_spaces if s.parking_spaces and s.parking_spaces > 0 else None
+            diesel = s.diesel_lanes if s.diesel_lanes and s.diesel_lanes > 0 else None
+            
             # Extraer nombres de las amenidades
             amenity_names = [a.name for a in s.amenities.all()]
             data.append({
@@ -40,8 +44,10 @@ def api_locations(request):
                 'lon': float(s.longitude) if s.longitude else None,
                 'name': s.name,
                 'operator': s.operator,
-                'parking': s.parking_spaces,
-                'diesel': s.diesel_lanes,
+                'parking': parking,
+                'diesel': diesel,
+                'city': s.city or 'No Registrada',
+                'state': s.state or 'NA',
                 'amenities': amenity_names
             })
             
@@ -71,15 +77,22 @@ def api_locations(request):
             
     elif layer_type == 'alt_fuel':
         # Filtramos para enviar solo las estaciones Heavy Duty (HD / Clase 8)
-        fuels = AlternativeFuelStation.objects.filter(maximum_vehicle_class__in=['HD', 'HEAVY-DUTY', 'HEAVY', 'CLASS 8']).values('id', 'name', 'latitude', 'longitude', 'fuel_type_code')
+        fuels = AlternativeFuelStation.objects.filter(maximum_vehicle_class__in=['HD', 'HEAVY-DUTY', 'HEAVY', 'CLASS 8']).prefetch_related('amenities').all()
         for f in fuels:
+            amenity_names = [a.name for a in f.amenities.all()]
             data.append({
-                'id': f['id'],
+                'id': f.id,
                 'type': 'alt_fuel',
-                'lat': float(f['latitude']) if f['latitude'] else None,
-                'lon': float(f['longitude']) if f['longitude'] else None,
-                'name': f['name'],
-                'fuel_type': f['fuel_type_code']
+                'lat': float(f.latitude) if f.latitude else None,
+                'lon': float(f.longitude) if f.longitude else None,
+                'name': f.name,
+                'operator': f.operator,
+                'city': f.city or 'No Registrada',
+                'state': f.state or 'NA',
+                'fuel_type': f.fuel_type_code,
+                'cng_dispensers': f.cng_dispenser_num,
+                'ev_dc_fast': f.ev_dc_fast_count,
+                'amenities': amenity_names
             })
             
     elif layer_type == 'recycling':

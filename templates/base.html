@@ -21,6 +21,12 @@
 
     <!-- CSS del Sistema de Diseño -->
     <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    
+    <!-- Script para aplicar el tema ANTES de que renderice el body y evitar parpadeos -->
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
 </head>
 <body>
     <div class="topo-background"></div>
@@ -48,14 +54,24 @@
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';       
             html.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
+            
+            // Actualizar icono si existe
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.className = newTheme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+            }
+
             // Disparar evento para que el mapa cambie de estilo si está abierto
             window.dispatchEvent(new Event('themeChanged'));
         }
 
-        // Cargar preferencia guardada
+        // Asegurar que el icono coincida al cargar la página
         document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme') || 'light';        
-            document.documentElement.setAttribute('data-theme', savedTheme);    
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const icon = document.getElementById('theme-icon');
+            if (icon) {
+                icon.className = currentTheme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+            }
         });
     </script>
     
