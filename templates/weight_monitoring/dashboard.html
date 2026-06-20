@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--text-color); font-weight: 600; margin: 0;">
+            <i class="fa-solid fa-scale-balanced text-info"></i> Regulación de Peso (Federal Bridge Formula)
+        </h2>
+        <div class="d-flex align-items-center">
+            <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.3); padding: 8px 15px; font-size: 14px;">
+                <i class="fa-solid fa-weight-hanging me-2"></i> Límite Federal: 80,000 lbs
+            </span>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="map-controls-panel p-4" style="text-align: center; border-bottom: 4px solid #3b82f6;">
+                <h5 style="color: var(--text-muted); font-size: 14px;"><i class="fa-solid fa-clipboard-check me-2"></i> Inspecciones (30 días)</h5>
+                <h2 style="color: var(--text-color); font-weight: bold; margin: 0;">{{ total_inspections }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="map-controls-panel p-4" style="text-align: center; border-bottom: 4px solid #10b981;">
+                <h5 style="color: var(--text-muted); font-size: 14px;"><i class="fa-solid fa-percent me-2"></i> Tasa de Cumplimiento</h5>
+                <h2 style="color: #10b981; font-weight: bold; margin: 0;">{{ compliance_rate|floatformat:1 }}%</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="map-controls-panel p-4" style="text-align: center; border-bottom: 4px solid #ef4444;">
+                <h5 style="color: var(--text-muted); font-size: 14px;"><i class="fa-solid fa-triangle-exclamation me-2"></i> Excesos de Peso</h5>
+                <h2 style="color: #ef4444; font-weight: bold; margin: 0;">{{ overweight_count }}</h2>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="map-controls-panel p-4" style="text-align: center; border-bottom: 4px solid #8b5cf6;">
+                <h5 style="color: var(--text-muted); font-size: 14px;"><i class="fa-solid fa-weight-scale me-2"></i> Peso Promedio (lbs)</h5>
+                <h2 style="color: #8b5cf6; font-weight: bold; margin: 0;">{{ avg_gross_weight|floatformat:0 }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Lista de Inspecciones de Peso -->
+        <div class="col-md-8 mb-4">
+            <div class="map-controls-panel p-0" style="overflow: hidden; height: 100%;">
+                <div class="p-4" style="border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="color: var(--text-color); margin: 0;">Últimos Registros (Estaciones WIM & Estáticas)</h4>
+                </div>
+                
+                <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-hover mb-0" style="color: var(--text-color);">
+                        <thead style="background-color: rgba(0, 0, 0, 0.03); position: sticky; top: 0; z-index: 1;">
+                            <tr>
+                                <th class="py-3 px-4" style="color: var(--text-muted); border-bottom: 2px solid rgba(255,255,255,0.1); font-weight: 600;">Fecha</th>
+                                <th class="py-3 px-4" style="color: var(--text-muted); border-bottom: 2px solid rgba(255,255,255,0.1); font-weight: 600;">Vehículo</th>
+                                <th class="py-3 px-4" style="color: var(--text-muted); border-bottom: 2px solid rgba(255,255,255,0.1); font-weight: 600;">Ubicación</th>
+                                <th class="py-3 px-4" style="color: var(--text-muted); border-bottom: 2px solid rgba(255,255,255,0.1); font-weight: 600;">Peso Bruto (lbs)</th>
+                                <th class="py-3 px-4" style="color: var(--text-muted); border-bottom: 2px solid rgba(255,255,255,0.1); font-weight: 600;">Estado Legal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inspection in latest_inspections %}
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: all 0.2s ease;">
+                                <td class="py-3 px-4 align-middle" style="font-size: 14px;">{{ inspection.timestamp|date:"M d, Y H:i" }}</td>
+                                <td class="py-3 px-4 align-middle">
+                                    <strong style="display: block; font-size: 15px; color: #3b82f6;">{{ inspection.truck.plate }}</strong>
+                                </td>
+                                <td class="py-3 px-4 align-middle" style="font-size: 14px;">
+                                    {{ inspection.location }}
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ inspection.get_inspection_type_display }}</div>
+                                </td>
+                                <td class="py-3 px-4 align-middle">
+                                    <strong style="font-family: monospace; font-size: 15px;">{{ inspection.gross_weight|floatformat:0 }}</strong>
+                                </td>
+                                <td class="py-3 px-4 align-middle">
+                                    {% if inspection.is_overweight %}
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 6px 10px;">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i> Exceso
+                                        </span>
+                                    {% else %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 6px 10px;">
+                                            <i class="fa-solid fa-check me-1"></i> Legal
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4" style="color: var(--text-muted);">
+                                    No hay registros de peso en el sistema.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de Alertas por Exceso -->
+        <div class="col-md-4 mb-4">
+            <div class="map-controls-panel p-0" style="overflow: hidden; height: 100%;">
+                <div class="p-4" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <h4 style="color: var(--text-color); margin: 0;"><i class="fa-solid fa-scale-unbalanced text-danger me-2"></i> Infracciones de Peso</h4>
+                </div>
+                <div class="p-0" style="max-height: 500px; overflow-y: auto;">
+                    {% for inspection in critical_inspections %}
+                        <div class="p-3" style="border-bottom: 1px solid rgba(255,255,255,0.05); border-left: 4px solid #ef4444;">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <strong style="color: #ef4444; font-size: 14px;">
+                                    Violación Fórmula Puente
+                                </strong>
+                                <small style="color: var(--text-muted); font-size: 11px;">{{ inspection.timestamp|timesince }}</small>
+                            </div>
+                            <p style="color: var(--text-color); margin: 0 0 5px 0; font-size: 14px;">
+                                Vehículo <strong>{{ inspection.truck.plate }}</strong> en {{ inspection.location }}.
+                            </p>
+                            <div style="font-size: 12px; color: var(--text-muted); background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px; display: inline-block;">
+                                Peso Bruto: <span style="color: #ef4444; font-weight: bold;">{{ inspection.gross_weight|floatformat:0 }} lbs</span>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <div class="p-5 text-center">
+                            <i class="fa-solid fa-shield-halved mb-3" style="font-size: 3rem; color: #10b981; opacity: 0.8;"></i>
+                            <p style="color: var(--text-muted); margin: 0;">Cero infracciones. Flota en cumplimiento legal.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    [data-theme="dark"] .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+</style>
+{% endblock %}

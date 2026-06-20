@@ -1,49 +1,32 @@
-from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from django.views.generic import ListView
+from apps.hos_monitoring.models import Driver, HOSCompliance, HOSAlert
+from django.db.models import Count, Q
 
-from apps.hos_monitoring.models import Driver, DriverLog, HOSAlert, HOSCompliance
-from apps.hos_monitoring.serializers import (
-    DriverLogSerializer,
-    DriverSerializer,
-    HOSAlertSerializer,
-    HOSComplianceSerializer,
-)
-from apps.hos_monitoring.services import HOSCalculator
+class HOSDashboardView(ListView):
+    model = Driver
+    template_name = 'hos_monitoring/dashboard.html'
+    context_object_name = 'drivers'
 
+    def get_queryset(self):
+        # Seleccionamos relacionados para evitar queries N+1
+        return Driver.objects.filter(status='ACTIVE').select_related('hos_compliance').prefetch_related('hos_alerts')
 
-class DriverViewSet(viewsets.ModelViewSet):
-    queryset = Driver.objects.all().order_by("last_name", "first_name")
-    serializer_class = DriverSerializer
-
-    @action(detail=True, methods=["get"])
-    def compliance(self, request, pk=None):
-        driver = self.get_object()
-        compliance, _ = HOSCompliance.objects.get_or_create(
-            driver=driver,
-            defaults={"cycle_start": driver.created_at},
-        )
-        return Response(HOSComplianceSerializer(compliance).data)
-
-    @action(detail=True, methods=["post"])
-    def evaluate(self, request, pk=None):
-        driver = self.get_object()
-        HOSCalculator.update_hos_status(driver)
-        alerts = HOSCalculator.generate_hos_alerts(driver)
-        return Response(
-            {
-                "driver_id": driver.id,
-                "is_compliant": driver.hos_compliance.is_compliant,
-                "alerts_generated": HOSAlertSerializer(alerts, many=True).data,
-            }
-        )
-
-
-class DriverLogViewSet(viewsets.ModelViewSet):
-    queryset = DriverLog.objects.all().order_by("-timestamp")
-    serializer_class = DriverLogSerializer
-
-
-class HOSAlertViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = HOSAlert.objects.all().order_by("-timestamp")
-    serializer_class = HOSAlertSerializer
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Obtener métricas globales
+        total_drivers = Driver.objects.filter(status='ACTIVE').count()
+        compliant_drivers = HOSCompliance.objects.filter(driver__status='ACTIVE', is_compliant=True).count()
+        violation_drivers = total_drivers - compliant_drivers
+        
+        active_alerts = HOSAlert.objects.filter(status='ACTIVE')
+        
+        context['total_drivers'] = total_drivers
+        context['compliant_drivers'] = compliant_drivers
+        context['violation_drivers'] = violation_drivers
+        context['active_alerts_count'] = active_alerts.count()
+        
+        # Alertas recientes para mostrar en la interfaz
+        context['recent_alerts'] = active_alerts.order_by('-timestamp')[:10]
+        
+        return context

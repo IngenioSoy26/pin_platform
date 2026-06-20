@@ -1,0 +1,389 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mapa Geoespacial | PIN Platform{% endblock %}
+
+{% block extra_head %}
+<!-- Leaflet CSS y JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Leaflet Heatmap Plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1" style="color: var(--text-primary); font-weight: 700;">
+                <i class="fa-solid fa-map-location-dot me-2" style="color: #3b82f6;"></i>Centro de Inteligencia Geoespacial
+            </h2>
+            <p class="mb-0" style="color: var(--text-secondary);">Mapeo avanzado, Geocercas, Clima y Densidad de Servicios en tiempo real</p>
+        </div>
+        <div class="d-flex gap-3 align-items-center">
+            <span id="sync-badge" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.6rem 1.2rem; border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; font-size: 0.9rem; display: flex; align-items: center; white-space: nowrap;">
+                <i class="fa-solid fa-satellite-dish" style="margin-right: 0.5rem; animation: pulse 2s infinite;"></i> Radar Activo
+            </span>
+        </div>
+    </div>
+
+    <!-- Layout (KPIs Arriba, Mapa Abajo) -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; width: 100%;">
+        <!-- Tarjeta 1 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem;"><i class="fa-solid fa-draw-polygon text-primary"></i></div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem;">Geocercas Activas</span>
+                    <span class="kpi-value text-primary" style="font-size: 1.5rem;">{{ active_geofences }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- Tarjeta 2 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); width: 45px; height: 45px; font-size: 1.2rem;"><i class="fa-solid fa-cloud-bolt text-danger"></i></div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem;">Alertas Climáticas</span>
+                    <span class="kpi-value text-danger" style="font-size: 1.5rem;">{{ weather_alerts }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- Tarjeta 3 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; font-size: 1.2rem;"><i class="fa-solid fa-route text-warning"></i></div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem;">Desvíos de Ruta</span>
+                    <span class="kpi-value text-warning" style="font-size: 1.5rem;">{{ route_deviations }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- Tarjeta 4 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem;"><i class="fa-solid fa-ban" style="color: #8b5cf6;"></i></div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem;">Zonas Restringidas</span>
+                    <span class="kpi-value" style="color: #8b5cf6; font-size: 1.5rem;">{{ restricted_zones }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mapa Row -->
+    <div class="row g-4">
+        <!-- Controles de Capas (Columna Izquierda Pequeña) -->
+        <div class="col-12 col-xl-3">
+            <div class="glass-card h-100">
+                <h5 style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
+                    <i class="fa-solid fa-layer-group me-2 text-info"></i>Filtros de Capas
+                </h5>
+                
+                <div class="form-check form-switch mb-4 custom-switch">
+                    <input class="form-check-input" type="checkbox" id="layerGeofences" checked>
+                    <label class="form-check-label ms-2" for="layerGeofences" style="color: #cbd5e1; font-weight: 500;">Geocercas & Hubs</label>
+                </div>
+                <div class="form-check form-switch mb-4 custom-switch">
+                    <input class="form-check-input" type="checkbox" id="layerHeatmap" checked>
+                    <label class="form-check-label ms-2" for="layerHeatmap" style="color: #cbd5e1; font-weight: 500;">
+                        Mapa de Calor (Densidad)
+                        <small class="d-block text-muted mt-1" style="font-size: 0.75rem;">Muestra concentración de Truck Stops, duchas y parqueaderos seguros</small>
+                    </label>
+                </div>
+                <div class="form-check form-switch custom-switch">
+                    <input class="form-check-input" type="checkbox" id="layerWeather" checked>
+                    <label class="form-check-label ms-2" for="layerWeather" style="color: #cbd5e1; font-weight: 500;">Alertas Meteorológicas</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- El Gran Mapa -->
+        <div class="col-12 col-xl-9">
+            <div class="glass-card p-0" style="position: relative; border-radius: 16px; overflow: hidden; height: 600px;">
+                <div id="geoMap" style="width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1;"></div>
+                
+                <!-- Leyenda del Heatmap Flotante -->
+                <div id="heatmapLegend" style="position: absolute; bottom: 30px; left: 30px; z-index: 400; background: rgba(15,23,42,0.85); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+                    <h6 style="color: #f8fafc; font-size: 0.85rem; margin-bottom: 10px; font-weight: 700;">Cobertura de Servicios (Amenities)</h6>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #94a3b8; font-size: 0.75rem;">Escasa</span>
+                        <div style="width: 150px; height: 10px; border-radius: 5px; background: linear-gradient(to right, rgba(0,0,255,0.5), rgba(0,255,255,0.6), rgba(0,255,0,0.7), rgba(255,255,0,0.8), rgba(255,0,0,0.9));"></div>
+                        <span style="color: #94a3b8; font-size: 0.75rem;">Favorable</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Datos JSON -->
+{{ trucks_map_json|json_script:"trucks-data" }}
+{{ geofences_json|json_script:"geofences-data" }}
+{{ heatmap_json|json_script:"heatmap-data" }}
+
+<style>
+    /* Estilos para el Glassmorphism y KPIs */
+    .glass-card {
+        background: rgba(30, 41, 59, 0.6) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+        border-radius: 16px;
+        padding: 1.5rem;
+    }
+
+    .kpi-card {
+        display: flex;
+        align-items: center;
+        padding: 1.2rem 1.5rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    }
+    .kpi-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+    .kpi-info {
+        display: flex;
+        flex-direction: column;
+    }
+    .kpi-label {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    .kpi-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    /* Pulsos y Map Markers */
+    .marker-pulse-active { animation: pulseGreen 2s infinite; }
+    .marker-pulse-warning { animation: pulseOrange 2s infinite; }
+    .marker-pulse-critical { animation: pulseRed 2s infinite; }
+
+    @keyframes pulseGreen { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.7); } 70% { box-shadow: 0 0 0 15px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
+    @keyframes pulseOrange { 0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.7); } 70% { box-shadow: 0 0 0 15px rgba(245,158,11,0); } 100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); } }
+    @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.7); } 70% { box-shadow: 0 0 0 15px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+
+    /* Custom Leaflet Popup for Dark Theme */
+    .leaflet-popup-content-wrapper {
+        background: rgba(15, 23, 42, 0.95) !important;
+        color: #f8fafc !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+    }
+    .leaflet-popup-tip {
+        background: rgba(15, 23, 42, 0.95) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+    }
+    
+    .custom-switch .form-check-input {
+        background-color: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.2);
+        width: 3em;
+        height: 1.5em;
+        cursor: pointer;
+    }
+    .custom-switch .form-check-input:checked {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+    }
+    .custom-switch .form-check-label {
+        cursor: pointer;
+        padding-top: 4px;
+    }
+</style>
+
+<script>
+    let map;
+    let markersLayer;
+    let geofencesLayer;
+    let heatLayer;
+
+    function initMap() {
+        if (!document.getElementById('geoMap')) return;
+        
+        map = L.map('geoMap', {
+            zoomControl: false 
+        }).setView([38.0, -96.0], 5); // Centro de EEUU un poco más alejado para ver cobertura
+        
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        markersLayer = L.layerGroup().addTo(map);
+        geofencesLayer = L.layerGroup().addTo(map);
+        
+        loadData();
+    }
+
+    function loadData() {
+        try {
+            const trucks = JSON.parse(document.getElementById('trucks-data').textContent);
+            const geofences = JSON.parse(document.getElementById('geofences-data').textContent);
+            const heatmapPoints = JSON.parse(document.getElementById('heatmap-data').textContent);
+            
+            // Dibujar Heatmap (Mapa de calor)
+            if (typeof L.heatLayer !== 'undefined') {
+                // Configuración extrema para forzar la visibilidad del heatmap
+                heatLayer = L.heatLayer(heatmapPoints, {
+                    radius: 50,      // Muy grande
+                    blur: 35,        // Muy difuminado
+                    maxZoom: 10,
+                    max: 1.0,        // Normaliza los valores
+                    minOpacity: 0.6, // Nunca será transparente
+                    gradient: {
+                        0.2: 'blue', 
+                        0.4: 'cyan', 
+                        0.6: 'lime', 
+                        0.8: 'yellow', 
+                        1.0: 'red'
+                    }
+                }).addTo(map);
+            } else {
+                console.warn("Leaflet Heatmap plugin not loaded.");
+            }
+
+            // Dibujar Geocercas
+            geofencesLayer.clearLayers();
+            geofences.forEach(gf => {
+                const circle = L.circle([gf.lat, gf.lon], {
+                    color: gf.color,
+                    fillColor: gf.color,
+                    fillOpacity: 0.1,
+                    radius: gf.radius,
+                    weight: 2,
+                    dashArray: '5, 5'
+                }).addTo(geofencesLayer);
+                
+                circle.bindPopup(`
+                    <div style="text-align:center;">
+                        <h6 style="margin:0; font-weight:700; color:${gf.color};">${gf.name}</h6>
+                        <small style="color:#94a3b8;">Radio de Alerta: ${gf.radius/1000} km</small>
+                    </div>
+                `);
+            });
+
+            // Dibujar Marcadores de Camiones
+            markersLayer.clearLayers();
+            trucks.forEach(t => {
+                let color, pulseClass;
+                if (t.status === 'CRITICAL') { color = '#ef4444'; pulseClass = 'marker-pulse-critical'; }
+                else if (t.status === 'WARNING') { color = '#f59e0b'; pulseClass = 'marker-pulse-warning'; }
+                else { color = '#10b981'; pulseClass = 'marker-pulse-active'; }
+
+                const iconHtml = `
+                    <div class="${pulseClass}" style="
+                        background: rgba(15, 23, 42, 0.95);
+                        border: 2px solid ${color};
+                        border-radius: 50%;
+                        width: 32px; height: 32px;
+                        display: flex; align-items: center; justify-content: center;
+                        color: ${color};
+                        font-size: 13px;
+                    ">
+                        <i class="fa-solid fa-truck"></i>
+                    </div>
+                `;
+
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: '',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+
+                const marker = L.marker([t.lat, t.lon], { icon }).addTo(markersLayer);
+                
+                marker.bindPopup(`
+                    <div style="padding: 8px; min-width: 200px;">
+                        <h6 style="margin:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px; color: #f8fafc; display:flex; justify-content:space-between;">
+                            <span><i class="fa-solid fa-truck text-primary me-2"></i>${t.plate}</span>
+                            <span style="color:${color}; font-size:0.8em; border: 1px solid ${color}; padding: 2px 6px; border-radius: 4px;">${t.status}</span>
+                        </h6>
+                        <div style="font-size: 0.9rem; color: #cbd5e1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <div>
+                                <small style="color: #64748b; display: block;">Velocidad</small>
+                                <strong>${t.speed} mph</strong>
+                            </div>
+                            <div>
+                                <small style="color: #64748b; display: block;">Rumbo</small>
+                                <strong>${t.heading}°</strong>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="/dashboards/iot/" class="btn btn-sm btn-primary" style="border-radius:6px; font-size:0.85rem; width:100%; font-weight: 600;">
+                                <i class="fa-solid fa-microchip me-1"></i> Auditar Telemetría
+                            </a>
+                        </div>
+                    </div>
+                `);
+            });
+
+            // Controles de capas interactivos
+            document.getElementById('layerGeofences').addEventListener('change', function(e) {
+                if(e.target.checked) map.addLayer(geofencesLayer);
+                else map.removeLayer(geofencesLayer);
+            });
+            
+            document.getElementById('layerHeatmap').addEventListener('change', function(e) {
+                const legend = document.getElementById('heatmapLegend');
+                if(e.target.checked) {
+                    if(heatLayer) map.addLayer(heatLayer);
+                    legend.style.display = 'block';
+                } else {
+                    if(heatLayer) map.removeLayer(heatLayer);
+                    legend.style.display = 'none';
+                }
+            });
+
+        } catch (e) {
+            console.error("Error cargando mapa:", e);
+        }
+    }
+
+    function autoSync() {
+        // Mantenemos el auto-sync pero aumentamos a 15 segundos para dar tiempo a analizar el mapa de calor
+        const badge = document.getElementById('sync-badge');
+        if (badge) badge.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin" style="margin-right: 0.5rem;"></i> Analizando Capas...';
+        
+        setTimeout(() => {
+            location.reload();
+        }, 15000); 
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Inicializar el mapa inmediatamente para que ocupe el espacio
+        initMap();
+        
+        // Invalidar el tamaño del mapa un poco después de que Bootstrap termine de pintar
+        // Esto fuerza a Leaflet a recalcular las dimensiones del contenedor
+        setTimeout(() => {
+            if(map) map.invalidateSize();
+        }, 500); 
+
+        setTimeout(autoSync, 15000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4 master-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--text-color); font-weight: 700; margin: 0; font-size: 1.8rem; letter-spacing: -0.5px;">
+            <i class="fa-solid fa-bell text-danger me-2"></i> Centro de Alertas y Mantenimiento
+        </h2>
+        <div>
+            <a href="{% url 'dashboards:hub' %}" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600;">
+                <i class="fa-solid fa-arrow-left"></i> Volver al Hub
+            </a>
+        </div>
+    </div>
+
+    <!-- KPIs Row -->
+    <div class="row mb-4 kpi-row-override">
+        <div class="col-md-4 mb-3">
+            <div class="kpi-card critical">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="kpi-info">
+                    <span class="kpi-label">ALERTAS CRÍTICAS (SLA < 1H)</span>
+                    <span class="kpi-value">{{ criticas_count }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="kpi-card warning">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-engine-warning"></i>
+                </div>
+                <div class="kpi-info">
+                    <span class="kpi-label">ADVERTENCIAS (SLA < 24H)</span>
+                    <span class="kpi-value">{{ warning_count }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="kpi-card info">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                </div>
+                <div class="kpi-info">
+                    <span class="kpi-label">VEHÍCULOS EN TALLER</span>
+                    <span class="kpi-value">{{ mantenimiento_count }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="row">
+        <!-- Columna 1: Alertas Entrantes -->
+        <div class="col-lg-6 mb-4">
+            <div class="glass-panel" style="height: 100%;">
+                <div class="panel-header border-bottom border-secondary pb-3 mb-3 d-flex justify-content-between align-items-center">
+                    <h5 style="color: var(--text-color); margin: 0; font-weight: 600;">
+                        <i class="fa-solid fa-satellite-dish text-primary me-2"></i> Feed de Telemetría (Live)
+                    </h5>
+                    <span class="badge bg-danger rounded-pill">{{ alertas|length }} Nuevas</span>
+                </div>
+                
+                <div class="alert-feed">
+                    {% for alerta in alertas %}
+                    <div class="alert-card {% if alerta.severity == 'CRITICAL' %}alert-critical{% else %}alert-warning{% endif %}">
+                        <div class="alert-header">
+                            <span class="alert-id">{{ alerta.id }}</span>
+                            <span class="alert-time"><i class="fa-regular fa-clock"></i> {{ alerta.time }}</span>
+                        </div>
+                        <div class="alert-body">
+                            <div class="truck-info">
+                                <strong>{{ alerta.truck }}</strong> <span class="text-muted">({{ alerta.brand }})</span>
+                            </div>
+                            <div class="alert-desc">
+                                {{ alerta.type }} en sensor <span class="sensor-badge">{{ alerta.sensor }}</span>
+                            </div>
+                        </div>
+                        <div class="alert-footer">
+                            <button class="btn-action dispatch"><i class="fa-solid fa-truck-medical"></i> Asignar Taller</button>
+                            <button class="btn-action dismiss"><i class="fa-solid fa-check"></i> Falsa Alarma</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna 2: Órdenes de Trabajo (Mantenimiento) -->
+        <div class="col-lg-6 mb-4">
+            <div class="glass-panel" style="height: 100%;">
+                <div class="panel-header border-bottom border-secondary pb-3 mb-3 d-flex justify-content-between align-items-center">
+                    <h5 style="color: var(--text-color); margin: 0; font-weight: 600;">
+                        <i class="fa-solid fa-clipboard-list text-info me-2"></i> Órdenes de Trabajo Activas
+                    </h5>
+                    <button class="btn btn-sm btn-outline-info"><i class="fa-solid fa-plus"></i> Nueva OT</button>
+                </div>
+
+                <div class="wo-feed">
+                    {% for wo in mantenimientos %}
+                    <div class="wo-card">
+                        <div class="wo-status-bar {% if wo.status == 'IN_PROGRESS' %}bg-info{% elif wo.status == 'PENDING' %}bg-warning{% else %}bg-success{% endif %}"></div>
+                        <div class="wo-content">
+                            <div class="wo-header">
+                                <span class="wo-id">{{ wo.id }}</span>
+                                <span class="badge {% if wo.status == 'IN_PROGRESS' %}bg-info text-dark{% elif wo.status == 'PENDING' %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                                    {% if wo.status == 'IN_PROGRESS' %}En Progreso
+                                    {% elif wo.status == 'PENDING' %}Pendiente
+                                    {% else %}Completado{% endif %}
+                                </span>
+                            </div>
+                            <h5 class="wo-title">{{ wo.truck }} - {{ wo.type }}</h5>
+                            <div class="wo-footer text-muted">
+                                <small><i class="fa-solid fa-stopwatch"></i> ETA: {{ wo.eta }}</small>
+                                <button class="btn-action small-btn">Ver Detalles</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center p-4">
+                        <p class="text-muted">No hay órdenes de trabajo activas.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .master-container {
+        padding: 0 1.5rem 2rem 1.5rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* FORZAR GRID HORIZONTAL EN KPIs */
+    .kpi-row-override {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 1.5rem;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .kpi-row-override > .col-md-4 {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    /* FORZAR GRID HORIZONTAL EN PANELES INFERIORES */
+    .row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 1.5rem;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .row > .col-lg-6 {
+        flex: 1 1 0 !important;
+        width: 50% !important;
+        max-width: 50% !important;
+        padding: 0 !important;
+    }
+
+    /* KPI Cards Glassmorphism */
+    .kpi-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.3s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .kpi-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .kpi-card.critical { border-left: 4px solid #ef4444; }
+    .kpi-card.warning { border-left: 4px solid #f59e0b; }
+    .kpi-card.info { border-left: 4px solid #3b82f6; }
+
+    .kpi-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+    }
+
+    .critical .kpi-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+    .warning .kpi-icon { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .info .kpi-icon { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+
+    .kpi-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .kpi-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+        color: var(--text-primary);
+        font-size: 2.2rem;
+        font-weight: 700;
+        line-height: 1.1;
+        margin-top: 0.2rem;
+    }
+
+    /* Glass Panel */
+    .glass-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* Alert Cards */
+    .alert-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .alert-feed::-webkit-scrollbar { width: 6px; }
+    .alert-feed::-webkit-scrollbar-track { background: transparent; }
+    .alert-feed::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+    .alert-card {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 10px;
+        padding: 1rem;
+        border: 1px solid var(--border-light);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+
+    .alert-card:hover {
+        background: rgba(15, 23, 42, 0.6);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .alert-critical {
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, rgba(0,0,0,0) 100%);
+    }
+
+    .alert-warning {
+        border-left: 4px solid #f59e0b;
+        background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, rgba(0,0,0,0) 100%);
+    }
+
+    .alert-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .alert-id { font-family: monospace; font-weight: bold; }
+    
+    .alert-body { margin-bottom: 1rem; }
+    
+    .truck-info {
+        font-size: 1.1rem;
+        color: var(--text-primary);
+        margin-bottom: 0.2rem;
+    }
+
+    .alert-desc {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+    }
+
+    .sensor-badge {
+        background: rgba(255,255,255,0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+    }
+
+    .alert-footer {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-action {
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text-primary);
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+    }
+
+    .btn-action:hover {
+        background: rgba(255,255,255,0.05);
+    }
+
+    .btn-action.dispatch:hover { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: #3b82f6; }
+    .btn-action.dismiss:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: #ef4444; }
+
+    /* Work Order Cards */
+    .wo-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .wo-feed::-webkit-scrollbar { width: 6px; }
+    .wo-feed::-webkit-scrollbar-track { background: transparent; }
+    .wo-feed::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+
+    .wo-card {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 10px;
+        border: 1px solid var(--border-light);
+        display: flex;
+        overflow: hidden;
+    }
+
+    .wo-status-bar {
+        width: 6px;
+        flex-shrink: 0;
+    }
+
+    .wo-content {
+        padding: 1rem;
+        flex-grow: 1;
+    }
+
+    .wo-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .wo-id {
+        font-family: monospace;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+
+    .wo-title {
+        color: var(--text-primary);
+        font-size: 1.05rem;
+        margin-bottom: 0.8rem;
+    }
+
+    .wo-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .small-btn {
+        padding: 0.2rem 0.6rem;
+        font-size: 0.8rem;
+    }
+</style>
+{% endblock %}

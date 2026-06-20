@@ -35,6 +35,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
 ]
 
 if ENABLE_GIS:
@@ -59,6 +60,17 @@ LOCAL_APPS = [
     "apps.hos_monitoring",
     "apps.weight_monitoring",
     "apps.fleet",
+    "apps.stations",
+    "apps.routes",
+    "apps.fuel_alternative",
+    "apps.recycling",
+    "apps.regulation",
+    "apps.carriers",
+    "apps.alerts",
+    "apps.recommendations",
+    "apps.iot_ingestion",
+    "apps.analytics",
+    "apps.dashboards",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -1,70 +1,70 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-4" style="max-width: 800px;">
+<div class="container mt-4 master-container" style="max-width: 800px;">
     
     <div class="mb-4">
-        <a href="{% url 'fleet:dashboard' %}" style="color: var(--text-muted); text-decoration: none;">
+        <a href="{% url 'fleet:dashboard' %}" class="btn-action" style="text-decoration: none; border-color: var(--border-strong);">
             <i class="fa-solid fa-arrow-left"></i> Volver al Dashboard
         </a>
     </div>
 
-    <div class="map-controls-panel p-4">
-        <h3 style="color: var(--text-color); margin-bottom: 20px;">
+    <div class="glass-panel">
+        <h3 style="color: var(--text-primary); margin-bottom: 1.5rem; font-weight: 700; letter-spacing: -0.5px;">
             {% if object %}
-                <i class="fa-solid fa-pen text-primary"></i> Editar Viaje #{{ object.id }}
+                <i class="fa-solid fa-pen text-primary me-2"></i> Editar Viaje #{{ object.id }}
             {% else %}
-                <i class="fa-solid fa-plus text-primary"></i> Nuevo Viaje
+                <i class="fa-solid fa-plus text-primary me-2"></i> Nuevo Viaje
             {% endif %}
         </h3>
 
-        <form method="POST">
+        <form method="POST" id="glass-form">
             {% csrf_token %}
             
             <div class="row">
-                <div class="col-md-12 mb-3">
-                    <label style="color: var(--text-muted); font-size: 14px;">Empresa Transportista</label>
+                <div class="col-md-12 mb-4 form-group-glass">
+                    <label>Empresa Transportista</label>
                     {{ form.company }}
                 </div>
                 
-                <div class="col-md-6 mb-3">
-                    <label style="color: var(--text-muted); font-size: 14px;">Conductor (HOS)</label>
+                <div class="col-md-6 mb-4 form-group-glass">
+                    <label>Conductor (HOS)</label>
                     {{ form.driver }}
                 </div>
                 
-                <div class="col-md-6 mb-3">
-                    <label style="color: var(--text-muted); font-size: 14px;">Tractomula (IoT)</label>
+                <div class="col-md-6 mb-4 form-group-glass">
+                    <label>Tractomula (IoT)</label>
                     {{ form.truck }}
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <label style="color: var(--text-muted); font-size: 14px;">Origen</label>
+                <div class="col-md-6 mb-4 form-group-glass">
+                    <label>Origen</label>
                     {{ form.origin_address }}
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <label style="color: var(--text-muted); font-size: 14px;">Destino</label>
+                <div class="col-md-6 mb-4 form-group-glass">
+                    <label>Destino</label>
                     {{ form.destination_address }}
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <label style="color: var(--text-muted); font-size: 14px;">Inicio Programado</label>
+                <div class="col-md-6 mb-4 form-group-glass">
+                    <label>Inicio Programado</label>
                     {{ form.scheduled_start }}
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <label style="color: var(--text-muted); font-size: 14px;">Fin Estimado</label>
+                <div class="col-md-6 mb-4 form-group-glass">
+                    <label>Fin Estimado</label>
                     {{ form.scheduled_end }}
                 </div>
 
-                <div class="col-md-12 mb-4">
-                    <label style="color: var(--text-muted); font-size: 14px;">Estado del Viaje</label>
+                <div class="col-md-12 mb-5 form-group-glass">
+                    <label>Estado del Viaje</label>
                     {{ form.status }}
                 </div>
             </div>
 
             <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary" style="border-radius: 8px; font-weight: 600; padding: 10px 24px;">
+                <button type="submit" class="btn-action dispatch" style="padding: 0.8rem 2rem; font-size: 1.1rem; width: 100%; justify-content: center;">
                     <i class="fa-solid fa-save"></i> Guardar Viaje
                 </button>
             </div>
@@ -73,26 +73,106 @@
 </div>
 
 <style>
-    /* Estilos para los inputs del formulario en Glassmorphism */
-    .glass-input {
-        background-color: var(--panel-bg);
-        border: 1px solid var(--border-color);
-        color: var(--text-color);
+    .master-container {
+        padding: 0 1.5rem 2rem 1.5rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Glass Panel */
+    .glass-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 2.5rem;
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    /* Form Styles */
+    .form-group-glass label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    /* Target Django's auto-generated inputs */
+    #glass-form input,
+    #glass-form select,
+    #glass-form textarea {
+        width: 100% !important;
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        color: var(--text-primary) !important;
+        border-radius: 8px !important;
+        padding: 0.8rem 1rem !important;
+        transition: all 0.3s ease !important;
+        font-size: 1rem !important;
+        backdrop-filter: blur(5px) !important;
+        -webkit-backdrop-filter: blur(5px) !important;
+    }
+
+    [data-theme="light"] #glass-form input,
+    [data-theme="light"] #glass-form select,
+    [data-theme="light"] #glass-form textarea {
+        background-color: rgba(255, 255, 255, 0.5) !important;
+        border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    }
+
+    #glass-form input:focus,
+    #glass-form select:focus,
+    #glass-form textarea:focus {
+        outline: none !important;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15) !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    [data-theme="light"] #glass-form input:focus,
+    [data-theme="light"] #glass-form select:focus,
+    [data-theme="light"] #glass-form textarea:focus {
+        background-color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    #glass-form select option {
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+    }
+
+    /* Action Buttons */
+    .btn-action {
+        background: transparent;
+        border: 1px solid var(--border-strong);
+        color: var(--text-primary);
+        padding: 0.5rem 1rem;
         border-radius: 8px;
-        padding: 10px 15px;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    .glass-input:focus {
-        background-color: var(--panel-bg);
-        border-color: #3b82f6;
-        color: var(--text-color);
-        box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
-    }
-    body.dark-mode .glass-input {
-        background-color: rgba(30, 41, 59, 0.7);
-    }
-    body.dark-mode select.glass-input option {
-        background-color: #1e293b;
-        color: #f8fafc;
-    }
+
+    .btn-action:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    .btn-action.dispatch { color: #3b82f6; border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+    .btn-action.dispatch:hover { background: rgba(59, 130, 246, 0.15); color: #3b82f6; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
 </style>
+
+<script>
+    // Agregar clases a los inputs generados por Django para asegurar consistencia
+    document.addEventListener("DOMContentLoaded", function() {
+        const form = document.getElementById('glass-form');
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            // Remove any form-control class that might interfere
+            input.classList.remove('form-control');
+        });
+    });
+</script>
 {% endblock %}

@@ -2,7 +2,9 @@ from django.views.generic import ListView, CreateView, UpdateView
 from django.urls import reverse_lazy
 from django.contrib import messages
 from apps.fleet.models import Trip
-from apps.fleet.forms import TripForm
+from apps.devices.models import Truck
+from apps.hos_monitoring.models import Driver
+from apps.fleet.forms import TripForm, DriverForm, TruckForm
 
 class FleetDashboardView(ListView):
     model = Trip
@@ -35,4 +37,36 @@ class TripUpdateView(UpdateView):
     
     def form_valid(self, form):
         messages.success(self.request, "El viaje ha sido actualizado.")
+        return super().form_valid(form)
+
+# Vistas para Conductores
+class DriverListView(ListView):
+    model = Driver
+    template_name = 'fleet/driver_list.html'
+    context_object_name = 'drivers'
+
+class DriverCreateView(CreateView):
+    model = Driver
+    form_class = DriverForm
+    template_name = 'fleet/driver_form.html'
+    success_url = reverse_lazy('fleet:driver_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Conductor registrado exitosamente.")
+        return super().form_valid(form)
+
+# Vistas para Tractomulas
+class TruckListView(ListView):
+    model = Truck
+    template_name = 'fleet/truck_list.html'
+    context_object_name = 'trucks'
+
+class TruckCreateView(CreateView):
+    model = Truck
+    form_class = TruckForm
+    template_name = 'fleet/truck_form.html'
+    success_url = reverse_lazy('fleet:truck_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "Tractomula registrada exitosamente.")
         return super().form_valid(form)

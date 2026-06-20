@@ -29,5 +29,12 @@ El archivo `services.py` aloja el `WeightComplianceService`. Este motor evalúa 
 
 Si se rompe alguna regla, el servicio dispara **Alertas de Sobrepeso**, que a su vez se conectan con la Fase 4 (Llantas) para acelerar el algoritmo de desgaste, ya que el sobrepeso destruye el caucho más rápido.
 
-## [Capturas o Diagramas]
-*(Espacio reservado para diagramas de la Federal Bridge Formula o tablas de la base de datos)*
+## 📸 Evidencia Visual
+
+Se implementó el Dashboard Gerencial Frontend con diseño Glassmorphism, que permite auditar:
+- La Tasa de Cumplimiento de peso de la flota en los últimos 30 días.
+- Historial detallado de todas las inspecciones (dinámicas WIM y estáticas).
+- Un panel lateral que actúa como un "Centro de Infracciones" para monitorear en tiempo real a los vehículos que han excedido la Federal Bridge Formula.
+
+---
+*Fase 6 completada y auditada según el documento maestro.*

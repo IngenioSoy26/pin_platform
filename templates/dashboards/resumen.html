@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* CSS Pulse Animation for Map Icons */
+    @keyframes icon-pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(inherit, 0.7); }
+        70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(0, 0, 0, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+    }
+    .pulse-animation {
+        animation: icon-pulse 2s infinite;
+    }
+    /* FORZAR REGLAS GRID (Superando conflictos de base.html) */
+    .master-container {
+        padding: 2rem;
+        max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .master-header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+        margin-bottom: 2rem !important;
+        border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+        padding-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+
+    .master-title {
+        color: var(--text-primary) !important;
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+        letter-spacing: -0.5px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .master-breadcrumb {
+        display: flex !important;
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+        font-size: 0.95rem !important;
+        align-items: center !important;
+    }
+    
+    .master-breadcrumb a {
+        color: #3b82f6 !important;
+        text-decoration: none !important;
+        font-weight: 500 !important;
+    }
+
+    .master-breadcrumb span {
+        color: var(--text-muted) !important;
+    }
+
+    .kpi-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important; /* Forzar 4 columnas exactas */
+        gap: 1.5rem !important;
+        margin-bottom: 2.5rem !important;
+        width: 100% !important;
+    }
+
+    .kpi-card-master {
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 16px !important;
+        padding: 1.8rem !important;
+        display: flex !important;
+        flex-direction: row !important; /* Forzar horizontal */
+        justify-content: space-between !important;
+        align-items: center !important;
+        box-shadow: var(--shadow-sm) !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        transition: transform 0.2s, box-shadow 0.2s !important;
+        height: 120px !important; /* Altura fija para uniformidad */
+    }
+
+    .kpi-card-master:hover {
+        transform: translateY(-5px) !important;
+        box-shadow: var(--shadow-glass) !important;
+        background: var(--bg-surface-solid) !important;
+    }
+
+    .kpi-info {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+
+    .kpi-info h6 {
+        color: var(--text-muted) !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        margin: 0 0 5px 0 !important;
+    }
+
+    .kpi-info h2 {
+        color: var(--text-primary) !important;
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+    }
+
+    .kpi-icon {
+        width: 65px !important;
+        height: 65px !important;
+        border-radius: 14px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.8rem !important;
+        flex-shrink: 0 !important; /* Evitar que el icono se aplaste */
+    }
+
+    .charts-grid {
+        display: grid !important;
+        grid-template-columns: 35% 65% !important; /* Proporción 1:2 estricta */
+        gap: 1.5rem !important;
+        width: 100% !important;
+        margin-bottom: 2rem !important;
+    }
+
+    .chart-panel {
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 16px !important;
+        padding: 1.5rem !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .chart-panel-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+
+    .chart-panel-title {
+        color: var(--text-primary) !important;
+        font-size: 1.2rem !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+    }
+
+    .btn-master {
+        background: rgba(59, 130, 246, 0.15) !important;
+        color: #3b82f6 !important;
+        border: 1px solid rgba(59, 130, 246, 0.4) !important;
+        padding: 10px 20px !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        cursor: pointer !important;
+        transition: all 0.2s !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+
+    .btn-master:hover {
+        background: rgba(59, 130, 246, 0.25) !important;
+        color: #60a5fa !important;
+    }
+
+    /* Responsive fallbacks */
+    @media (max-width: 1100px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        .charts-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 768px) {
+        .kpi-grid { grid-template-columns: 1fr !important; }
+        .master-header { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
+    }
+</style>
+
+<div class="master-container">
+    <!-- Header -->
+    <div class="master-header">
+        <div>
+            <div class="master-breadcrumb">
+                <a href="{% url 'dashboards:hub' %}"><i class="fa-solid fa-layer-group me-1"></i> Hub de Analítica</a>
+                <span>/</span>
+                <span>Resumen Global</span>
+            </div>
+            <h1 class="master-title"><i class="fa-solid fa-chart-line text-info me-3"></i> Resumen Ejecutivo de Flota</h1>
+        </div>
+        <button class="btn-master" onclick="location.reload()">
+            <i class="fa-solid fa-rotate-right me-2"></i>Sincronizar
+        </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi-card-master" style="border-bottom: 4px solid #3b82f6;">
+            <div class="kpi-info">
+                <h6>Tractomulas Registradas</h6>
+                <h2 id="kpi-res-total">{{ total_trucks }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                <i class="fa-solid fa-truck"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #10b981;">
+            <div class="kpi-info">
+                <h6>Viajes en Tránsito</h6>
+                <h2 id="kpi-res-active">{{ active_trips }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                <i class="fa-solid fa-route"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #f59e0b;">
+            <div class="kpi-info">
+                <h6>Alertas HOS (Fatiga)</h6>
+                <h2 id="kpi-res-hos">{{ hos_alerts }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                <i class="fa-solid fa-user-clock"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #ef4444;">
+            <div class="kpi-info">
+                <h6>Infracciones Peso</h6>
+                <h2 id="kpi-res-weight">{{ weight_alerts }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                <i class="fa-solid fa-scale-unbalanced"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y Mapas -->
+    <div class="charts-grid">
+        <!-- Plotly -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">Disponibilidad Operativa</h3>
+            </div>
+            <div id="fleetStatusChart" style="height: 380px;"></div>
+        </div>
+
+        <!-- Leaflet -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">Rastreo Satelital (Live)</h3>
+                <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                    <i class="fa-solid fa-circle-dot fa-fade"></i> Auto-Sync
+                </span>
+            </div>
+            <div id="trucksMap" style="height: 380px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); z-index: 1;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Inject the JSON data for the charts and map -->
+{{ fleet_status_json|json_script:"fleet-status-data" }}
+{{ trucks_map_json|json_script:"trucks-map-data" }}
+
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<!-- Leaflet.js -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // --- PLOTLY ---
+    const fleetData = JSON.parse(document.getElementById('fleet-status-data').textContent);
+    
+    const plotData = [{
+        values: fleetData.values,
+        labels: fleetData.labels,
+        type: 'pie',
+        hole: 0.7,
+        marker: {
+            colors: ['#10b981', '#f59e0b', '#475569'],
+            line: { color: '#1e293b', width: 3 }
+        },
+        textinfo: 'percent',
+        textfont: { size: 14, color: '#ffffff', weight: 'bold' },
+        hoverinfo: 'label+value'
+    }];
+
+    const plotLayout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 0, b: 0, l: 0, r: 0 },
+        showlegend: true,
+        legend: {
+            orientation: 'h',
+            y: -0.1,
+            x: 0.5,
+            xanchor: 'center',
+            font: { color: '#94a3b8', size: 13 }
+        }
+    };
+
+    Plotly.newPlot('fleetStatusChart', plotData, plotLayout, {displayModeBar: false});
+
+
+    // --- INICIALIZACIÓN DEL MAPA LEAFLET ---
+    const map = L.map('trucksMap').setView([39.8283, -98.5795], 4); // Centro de USA
+
+    // Capa oscura satelital de CartoDB
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    const trucksList = JSON.parse(document.getElementById('trucks-map-data').textContent);
+    const bounds = [];
+
+    trucksList.forEach(truck => {
+        const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
+        const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+        const statusText = truck.status === 'ACTIVE' ? 'ACTIVO' : (truck.status === 'MAINTENANCE' ? 'MANTENIMIENTO' : 'INACTIVO');
+        const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
+        
+        const truckIcon = L.divIcon({
+            className: 'custom-truck-marker',
+            html: `<div class="${pulseClass}" style="background: ${bgGlow}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid ${statusColor}; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);">
+                     <i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 12px;"></i>
+                   </div>`,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+
+        const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
+        marker.bindPopup(`
+            <div style="text-align: center; padding: 5px;">
+                <h6 style="margin:0 0 5px 0; font-weight: 800; font-size: 14px; color: #1e293b;">${truck.plate}</h6>
+                <p style="margin:0; font-size: 12px; color: #64748b;">${truck.brand}</p>
+                <div style="margin-top: 8px; background: ${statusColor}22; color: ${statusColor}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                    ${statusText}
+                </div>
+            </div>
+        `);
+        bounds.push([truck.lat, truck.lon]);
+    });
+
+    if(bounds.length > 0) {
+        map.fitBounds(bounds, {padding: [50, 50]});
+    }
+
+    // Función AJAX para simular Live Polling en el Resumen
+    setInterval(function() {
+        fetch('/api/dashboards/resumen/live/')
+            .then(response => response.json())
+            .then(data => {
+                // Actualizar KPIs superiores (Animación suave)
+                const updateKPI = (id, newVal) => {
+                    const el = document.getElementById(id);
+                    if (el && el.innerText !== newVal.toString()) {
+                        el.style.opacity = 0;
+                        setTimeout(() => {
+                            el.innerText = newVal;
+                            el.style.opacity = 1;
+                        }, 300);
+                    }
+                };
+                updateKPI('kpi-res-total', data.total_trucks);
+                updateKPI('kpi-res-hos', data.recent_hos_alerts);
+                
+                // Extraer el conteo de activos, mantenimiento e inactivos de trucks_map
+                let c_active = 0, c_maint = 0, c_inact = 0;
+                data.trucks_map.forEach(t => {
+                    if(t.status === 'ACTIVE') c_active++;
+                    else if(t.status === 'MAINTENANCE') c_maint++;
+                    else c_inact++;
+                });
+
+                // Actualizar Gráfico Plotly
+                Plotly.update('fleetStatusChart', {
+                    values: [[c_active, c_maint, c_inact]]
+                });
+
+                // Actualizar el mapa
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                data.trucks_map.forEach(truck => {
+                    if (truck.lat && truck.lon) {
+                        const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
+                        const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+                        const statusText = truck.status === 'ACTIVE' ? 'ACTIVO' : (truck.status === 'MAINTENANCE' ? 'MANTENIMIENTO' : 'INACTIVO');
+                        const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
+                        
+                        const truckIcon = L.divIcon({
+                            className: 'custom-truck-marker',
+                            html: `<div class="${pulseClass}" style="background: ${bgGlow}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid ${statusColor}; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);">
+                                     <i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 12px;"></i>
+                                   </div>`,
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14]
+                        });
+
+                        const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
+                        marker.bindPopup(`
+                            <div style="text-align: center; padding: 5px;">
+                                <h6 style="margin:0 0 5px 0; font-weight: 800; font-size: 14px; color: #1e293b;">${truck.plate}</h6>
+                                <p style="margin:0; font-size: 12px; color: #64748b;">${truck.brand}</p>
+                                <div style="margin-top: 8px; background: ${statusColor}22; color: ${statusColor}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                                    ${statusText}
+                                </div>
+                            </div>
+                        `);
+                    }
+                });
+            })
+            .catch(e => console.error("Auto-sync falló", e));
+    }, 8000); // Refrescar cada 8 segundos
+
+</script>
+{% endblock %}

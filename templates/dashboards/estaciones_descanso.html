@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--text-color); font-weight: 600; margin: 0;">
+            <i class="fa-solid fa-chart-line text-info"></i> Estaciones Descanso
+        </h2>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="map-controls-panel p-5 text-center" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <i class="fa-solid fa-person-digging mb-4" style="font-size: 4rem; color: #3b82f6; opacity: 0.8;"></i>
+                <h3 style="color: var(--text-color);">Módulo en Construcción</h3>
+                <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto;">
+                    Esta vista formará parte del panel interactivo con gráficos Plotly y mapas Leaflet.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

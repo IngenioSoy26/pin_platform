@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* MASTER STYLES FOR TIRE WEAR */
+    .master-container {
+        padding: 2rem;
+        max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .master-header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+        margin-bottom: 2rem !important;
+        border-bottom: 1px solid var(--border-strong) !important;
+        padding-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+
+    .master-title {
+        color: var(--text-primary) !important;
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+        letter-spacing: -0.5px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .master-breadcrumb {
+        display: flex !important;
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+        font-size: 0.95rem !important;
+        align-items: center !important;
+    }
+    
+    .master-breadcrumb a {
+        color: var(--brand-blue) !important;
+        text-decoration: none !important;
+        font-weight: 500 !important;
+    }
+
+    .master-breadcrumb span {
+        color: var(--text-muted) !important;
+    }
+
+    .kpi-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 1.5rem !important;
+        margin-bottom: 2.5rem !important;
+        width: 100% !important;
+    }
+
+    .kpi-card-master {
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 16px !important;
+        padding: 1.8rem !important;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        transition: transform 0.2s, box-shadow 0.2s !important;
+        height: 120px !important;
+    }
+
+    .kpi-card-master:hover {
+        transform: translateY(-5px) !important;
+        box-shadow: var(--shadow-glass) !important;
+        background: var(--bg-surface-solid) !important;
+    }
+
+    .kpi-info {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+
+    .kpi-info h6 {
+        color: var(--text-muted) !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        margin: 0 0 5px 0 !important;
+    }
+
+    .kpi-info h2 {
+        color: var(--text-primary) !important;
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+    }
+
+    .kpi-icon {
+        width: 65px !important;
+        height: 65px !important;
+        border-radius: 14px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.8rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .charts-grid {
+        display: grid !important;
+        grid-template-columns: 2fr 1fr !important;
+        gap: 1.5rem !important;
+        width: 100% !important;
+        margin-bottom: 2rem !important;
+    }
+
+    .chart-panel {
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 16px !important;
+        padding: 1.5rem !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .chart-panel-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+
+    .chart-panel-title {
+        color: var(--text-primary) !important;
+        font-size: 1.2rem !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+    }
+
+    .table-glass {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        color: var(--text-primary);
+    }
+
+    .table-glass th {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 12px 15px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        border-bottom: 2px solid var(--border-strong);
+    }
+
+    .table-glass td {
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: middle;
+    }
+
+    .table-glass tr:hover td {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Responsive fallbacks */
+    @media (max-width: 1100px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        .charts-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 768px) {
+        .kpi-grid { grid-template-columns: 1fr !important; }
+        .master-header { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
+    }
+</style>
+
+<div class="master-container">
+    <!-- Header -->
+    <div class="master-header">
+        <div>
+            <div class="master-breadcrumb">
+                <a href="{% url 'dashboards:hub' %}"><i class="fa-solid fa-layer-group me-1"></i> Hub de Analítica</a>
+                <span>/</span>
+                <span>Desgaste de Llantas</span>
+            </div>
+            <h1 class="master-title"><i class="fa-solid fa-truck-monster text-info me-3"></i> Analítica Predictiva de Desgaste</h1>
+        </div>
+        <button class="btn btn-primary" style="border-radius: 8px; font-weight: 600; padding: 10px 20px;" onclick="location.reload()">
+            <i class="fa-solid fa-rotate-right me-2"></i>Actualizar Datos
+        </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi-card-master" style="border-bottom: 4px solid #3b82f6;">
+            <div class="kpi-info">
+                <h6>Total Llantas Monitoreadas</h6>
+                <h2>{{ total_tires_monitored }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                <i class="fa-solid fa-ring"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #10b981;">
+            <div class="kpi-info">
+                <h6>Estado Óptimo (>10/32")</h6>
+                <h2>{{ good_wear }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                <i class="fa-solid fa-check-circle"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #f59e0b;">
+            <div class="kpi-info">
+                <h6>Advertencia (5-10/32")</h6>
+                <h2>{{ warning_wear }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                <i class="fa-solid fa-exclamation-triangle"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #ef4444;">
+            <div class="kpi-info">
+                <h6>Desgaste Crítico (<5/32")</h6>
+                <h2>{{ critical_wear }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                <i class="fa-solid fa-radiation"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y Tablas -->
+    <div class="charts-grid">
+        <!-- Plotly: Pronóstico de Reemplazos -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">Pronóstico de Reemplazos (Próximos 6 Meses)</h3>
+            </div>
+            <div id="replacementForecastChart" style="height: 350px;"></div>
+        </div>
+
+        <!-- Plotly: Distribución de Desgaste -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h3 class="chart-panel-title">Distribución de Desgaste</h3>
+            </div>
+            <div id="wearDistributionChart" style="height: 350px;"></div>
+        </div>
+    </div>
+
+    <!-- Tabla Top Vehículos Críticos -->
+    <div class="chart-panel">
+        <div class="chart-panel-header">
+            <h3 class="chart-panel-title">Vehículos con Desgaste Crítico (Top 5)</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table-glass">
+                <thead>
+                    <tr>
+                        <th>Tractomula</th>
+                        <th>Posición Crítica</th>
+                        <th>Profundidad (32nds)</th>
+                        <th>Millas Estimadas Restantes</th>
+                        <th>Acción Sugerida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in top_wear_trucks %}
+                    <tr>
+                        <td><strong>{{ t.plate }}</strong></td>
+                        <td>{{ t.worst_tire }}</td>
+                        <td>
+                            <span style="color: {% if t.tread_depth < 3.0 %}#ef4444{% else %}#f59e0b{% endif %}; font-weight: bold;">
+                                {{ t.tread_depth }}"
+                            </span>
+                        </td>
+                        <td>{{ t.est_miles_left }} mi</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-warning" style="border-radius: 6px;">Programar Reemplazo</button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4" style="color: var(--text-muted);">No hay vehículos con desgaste crítico actualmente.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Inject Data for Charts -->
+{{ wear_distribution_json|json_script:"wear-data" }}
+{{ replacement_forecast_json|json_script:"forecast-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = isDarkMode ? '#cbd5e1' : '#64748b';
+        const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+        // 1. Gráfico de Distribución (Pie)
+        const wearData = JSON.parse(document.getElementById('wear-data').textContent);
+        
+        const pieData = [{
+            values: wearData.values,
+            labels: wearData.labels,
+            type: 'pie',
+            hole: 0.6,
+            marker: {
+                colors: ['#10b981', '#f59e0b', '#ef4444'],
+                line: { color: isDarkMode ? '#1e293b' : '#ffffff', width: 2 }
+            },
+            textinfo: 'percent',
+            textfont: { size: 14, color: '#ffffff', weight: 'bold' }
+        }];
+
+        const pieLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: { t: 0, b: 0, l: 0, r: 0 },
+            showlegend: true,
+            legend: {
+                orientation: 'h',
+                y: -0.1,
+                x: 0.5,
+                xanchor: 'center',
+                font: { color: textColor, size: 12 }
+            }
+        };
+
+        Plotly.newPlot('wearDistributionChart', pieData, pieLayout, {displayModeBar: false});
+
+        // 2. Gráfico de Pronóstico (Bar)
+        const forecastData = JSON.parse(document.getElementById('forecast-data').textContent);
+
+        const barData = [{
+            x: forecastData.months,
+            y: forecastData.replacements,
+            type: 'bar',
+            marker: {
+                color: '#3b82f6',
+                line: { color: '#2563eb', width: 1 }
+            }
+        }];
+
+        const barLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: { t: 10, b: 40, l: 40, r: 10 },
+            xaxis: { 
+                showgrid: false, 
+                tickfont: { color: textColor },
+                type: 'category' 
+            },
+            yaxis: { 
+                gridcolor: gridColor, 
+                tickfont: { color: textColor },
+                title: { text: 'Cantidad de Llantas', font: { color: textColor } }
+            }
+        };
+
+        Plotly.newPlot('replacementForecastChart', barData, barLayout, {displayModeBar: false, responsive: true});
+    });
+</script>
+{% endblock %}

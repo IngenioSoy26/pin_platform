@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: #f8fafc; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fa-solid fa-lightbulb text-warning"></i> 
+            Copiloto Inteligente (PIN-AI)
+        </h2>
+        <div class="d-flex gap-3 align-items-center">
+            <!-- Selector de Vehículo -->
+            <select id="vehicleSelector" class="form-select" style="background: rgba(30, 41, 59, 0.6); color: #f8fafc; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; font-weight: 600; cursor: pointer;" onchange="changeVehicle(this.value)">
+                <option value="GLOBAL">🌍 Flota Global</option>
+                {% for t in trucks_list %}
+                <option value="{{ t.plate }}" {% if request.GET.vehicle == t.plate %}selected{% endif %}>{{ t.label }}</option>
+                {% endfor %}
+            </select>
+
+            <span id="sync-badge" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.6rem 1.2rem; border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; font-size: 0.9rem; display: flex; align-items: center; white-space: nowrap;">
+                <i class="fa-solid fa-circle" style="font-size: 0.6rem; margin-right: 0.5rem; animation: pulse 2s infinite;"></i> Auto-Sync Live
+            </span>
+        </div>
+    </div>
+
+    <!-- AI Score & Metrics -->
+    <div class="kpi-grid mb-4">
+        <div class="glass-card kpi-card" style="border: 1px solid rgba(16, 185, 129, 0.3) !important;">
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15);"><i class="fa-solid fa-leaf text-success"></i></div>
+            <div class="kpi-info">
+                <span class="kpi-label">Eficiencia General</span>
+                <span class="kpi-value text-success" id="kpi-efficiency">--%</span>
+            </div>
+        </div>
+        <div class="glass-card kpi-card">
+            <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15);"><i class="fa-solid fa-gas-pump text-warning"></i></div>
+            <div class="kpi-info">
+                <span class="kpi-label">Ahorro Est. Combustible</span>
+                <span class="kpi-value"><span id="kpi-fuel">--</span> <small style="color: #94a3b8; font-size: 0.5em;">Galones</small></span>
+            </div>
+        </div>
+        <div class="glass-card kpi-card">
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15);"><i class="fa-solid fa-shield-halved text-primary"></i></div>
+            <div class="kpi-info">
+                <span class="kpi-label">Incidentes Prevenidos</span>
+                <span class="kpi-value" id="kpi-incidents">--</span>
+            </div>
+        </div>
+        <div class="glass-card kpi-card">
+            <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15);"><i class="fa-solid fa-wand-magic-sparkles" style="color: #8b5cf6;"></i></div>
+            <div class="kpi-info">
+                <span class="kpi-label">Optimizaciones Activas</span>
+                <span class="kpi-value" style="color: #8b5cf6;" id="kpi-opts">--</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <!-- Recomendaciones List -->
+        <div class="col-lg-8">
+            <div class="glass-card h-100">
+                <div class="widget-header">
+                    <h3>Acciones Sugeridas por la IA</h3>
+                </div>
+                
+                <div class="recommendations-list mt-4" id="recs-container">
+                    <!-- Dynamic rendering -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Radar Chart -->
+        <div class="col-lg-4">
+            <div class="glass-card h-100">
+                <div class="widget-header">
+                    <h3>Análisis Multidimensional</h3>
+                </div>
+                <div class="d-flex justify-content-center align-items-center" style="height: 350px;">
+                    <div id="radarChart" style="width: 100%; height: 100%;"></div>
+                </div>
+                <p class="text-center mt-3" style="color: #94a3b8; font-size: 0.9rem;">
+                    Evaluación heurística del comportamiento general de la flota según algoritmos de Machine Learning.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Injection -->
+{{ fleet_data_json|json_script:"fleet-data" }}
+
+<!-- Script -->
+<script>
+    let fleetData = {};
+    
+    function renderRecommendations(recs) {
+        const container = document.getElementById('recs-container');
+        container.innerHTML = '';
+        
+        if(!recs || recs.length === 0) {
+            container.innerHTML = '<div class="text-center p-5" style="color: #94a3b8;"><i class="fa-solid fa-check-circle mb-3" style="font-size: 3rem; color: #10b981; opacity: 0.8;"></i><br>No hay recomendaciones activas. El vehículo opera en parámetros óptimos.</div>';
+            return;
+        }
+
+        recs.forEach(rec => {
+            container.innerHTML += `
+            <div class="rec-item">
+                <div class="rec-icon" style="background: ${rec.color}20; color: ${rec.color}; border: 1px solid ${rec.color}40;">
+                    <i class="fa-solid ${rec.icon}"></i>
+                </div>
+                <div class="rec-content">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h4 style="color: #f8fafc; font-size: 1.1rem; font-weight: 600; margin: 0;">${rec.title}</h4>
+                        <span class="badge" style="background: ${rec.badge_color}; color: ${rec.badge_text}; border: 1px solid ${rec.badge_text};">${rec.badge_label}</span>
+                    </div>
+                    <p style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 0.8rem; line-height: 1.5;">${rec.desc}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span style="color: ${rec.color}; font-weight: 600; font-size: 0.85rem;">
+                            <i class="fa-solid fa-bolt me-1"></i> Impacto: ${rec.impact}
+                        </span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary me-2" style="border-radius: 6px;">Ignorar</button>
+                            <button class="btn btn-sm" style="background: ${rec.color}30; color: ${rec.color}; border: 1px solid ${rec.color}; border-radius: 6px; font-weight: 600;"><i class="fa-solid fa-paper-plane me-1"></i> Enviar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+
+    function updateRadarChart(radarValues) {
+        Plotly.update('radarChart', {r: [radarValues]}, {}, 0);
+    }
+
+    function changeVehicle(plate) {
+        const data = fleetData[plate];
+        if(!data) return;
+
+        // Update KPIs
+        document.getElementById('kpi-efficiency').innerText = data.kpis.efficiency + '%';
+        document.getElementById('kpi-fuel').innerText = data.kpis.fuel;
+        document.getElementById('kpi-incidents').innerText = data.kpis.incidents;
+        document.getElementById('kpi-opts').innerText = data.kpis.optimizations;
+
+        // Update Radar
+        updateRadarChart(data.radar);
+
+        // Update Recs
+        renderRecommendations(data.recs);
+    }
+
+    function fetchLiveData() {
+        // Preservar la selección actual al recargar
+        const currentVehicle = document.getElementById('vehicleSelector').value;
+        
+        const badge = document.getElementById('sync-badge');
+        if (badge) badge.innerHTML = '<i class="fa-solid fa-sync fa-spin" style="margin-right: 0.5rem;"></i> Analizando...';
+        
+        setTimeout(() => {
+            // Recargar manteniendo el query param del vehículo
+            window.location.href = window.location.pathname + '?vehicle=' + currentVehicle;
+        }, 8000); 
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        try {
+            fleetData = JSON.parse(document.getElementById('fleet-data').textContent);
+            
+            // Initial Radar Setup
+            const initialData = fleetData['GLOBAL'];
+            const data = [{
+                type: 'scatterpolar',
+                r: initialData.radar,
+                theta: ['Seguridad', 'Puntualidad', 'Ahorro Combustible', 'Mantenimiento', 'Cumplimiento Legal', 'Vida de Llantas'],
+                fill: 'toself',
+                fillcolor: 'rgba(59, 130, 246, 0.2)',
+                line: {
+                    color: '#3b82f6',
+                    width: 2
+                },
+                marker: {
+                    color: '#3b82f6',
+                    size: 6
+                }
+            }];
+            
+            const layout = {
+                polar: {
+                    radialaxis: {
+                        visible: true,
+                        range: [0, 100],
+                        color: 'rgba(255,255,255,0.2)',
+                        gridcolor: 'rgba(255,255,255,0.1)',
+                        tickfont: {color: '#94a3b8', size: 10}
+                    },
+                    angularaxis: {
+                        tickfont: {color: '#f8fafc', size: 11, weight: 'bold'},
+                        gridcolor: 'rgba(255,255,255,0.1)'
+                    },
+                    bgcolor: 'rgba(0,0,0,0)'
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: {t: 30, r: 40, b: 30, l: 40},
+                showlegend: false
+            };
+            
+            Plotly.newPlot('radarChart', data, layout, {displayModeBar: false, responsive: true});
+
+            // Load Initial Data (o el seleccionado por URL)
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedVehicle = urlParams.get('vehicle') || 'GLOBAL';
+            
+            // Asegurar que el selector HTML refleje el estado real
+            document.getElementById('vehicleSelector').value = selectedVehicle;
+            
+            changeVehicle(selectedVehicle);
+            
+            // Iniciar Auto-Sync
+            setTimeout(fetchLiveData, 8000);
+        } catch(e) {
+            console.error("Error Plotly Radar:", e);
+        }
+    });
+</script>
+
+<!-- Estilos -->
+<style>
+    .glass-card {
+        background: rgba(30, 41, 59, 0.6) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    }
+    
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .kpi-card {
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+        padding: 1.5rem;
+    }
+    
+    .kpi-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+    }
+    
+    .kpi-info {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .kpi-label {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.3rem;
+    }
+    
+    .kpi-value {
+        color: #f8fafc;
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .widget-header h3 {
+        color: #f8fafc;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding-bottom: 1rem;
+    }
+
+    /* Lista de Recomendaciones */
+    .recommendations-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .rec-item {
+        display: flex;
+        gap: 1.2rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1.2rem;
+        transition: all 0.2s ease;
+    }
+
+    .rec-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateY(-2px);
+    }
+
+    .rec-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .rec-content {
+        flex-grow: 1;
+    }
+
+    @media (max-width: 1200px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+        .kpi-grid { grid-template-columns: 1fr; }
+        .rec-item { flex-direction: column; }
+    }
+</style>
+{% endblock %}

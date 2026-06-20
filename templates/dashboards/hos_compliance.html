@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4 master-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--text-color); font-weight: 700; margin: 0; font-size: 1.8rem; letter-spacing: -0.5px;">
+            <i class="fa-solid fa-user-clock text-warning me-2"></i> HOS Compliance & Auditoría de Fatiga
+        </h2>
+        <div>
+            <a href="{% url 'dashboards:hub' %}" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600;">
+                <i class="fa-solid fa-arrow-left"></i> Volver al Hub
+            </a>
+        </div>
+    </div>
+
+    <!-- KPIs Row -->
+    <div class="row mb-4 kpi-row-override">
+        <div class="col-md-3 mb-3">
+            <div class="kpi-card total">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="kpi-info">
+                    <span class="kpi-label">CONDUCTORES ACTIVOS</span>
+                    <span class="kpi-value">{{ total_drivers }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="kpi-card info">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-shield"></i>
+                </div>
+                <div class="kpi-info">
+                    <span class="kpi-label">EN CUMPLIMIENTO (FMCSA)</span>
+                    <span class="kpi-value">{{ compliant_drivers }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="kpi-card warning">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="kpi-info">
+                    <span class="kpi-label">INFRACCIONES ACTIVAS</span>
+                    <span class="kpi-value">{{ violation_drivers }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="kpi-card critical">
+                <div class="kpi-icon">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="kpi-info">
+                    <span class="kpi-label">ALERTAS DE FATIGA</span>
+                    <span class="kpi-value">{{ active_alerts_count }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row">
+        <!-- Columna 1: Alertas HOS Recientes -->
+        <div class="col-lg-7 mb-4">
+            <div class="glass-panel" style="height: 100%;">
+                <div class="panel-header border-bottom border-secondary pb-3 mb-3 d-flex justify-content-between align-items-center">
+                    <h5 style="color: var(--text-color); margin: 0; font-weight: 600;">
+                        <i class="fa-solid fa-list-ul text-warning me-2"></i> Registro de Infracciones HOS
+                    </h5>
+                </div>
+                
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="glass-table w-100">
+                        <thead>
+                            <tr>
+                                <th>Conductor</th>
+                                <th>Tipo de Alerta</th>
+                                <th>Severidad</th>
+                                <th>Hora</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in recent_alerts %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="driver-avatar me-2">{{ alert.driver.first_name|first }}{{ alert.driver.last_name|first }}</div>
+                                        <div>
+                                            <strong>{{ alert.driver.first_name }} {{ alert.driver.last_name }}</strong><br>
+                                            <small class="text-muted">{{ alert.driver.license_number }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ alert.get_alert_type_display }}</td>
+                                <td>
+                                    <span class="badge {% if alert.severity == 'VIOLATION' %}bg-danger{% else %}bg-warning{% endif %}">
+                                        {{ alert.get_severity_display }}
+                                    </span>
+                                </td>
+                                <td class="text-muted">{{ alert.timestamp|timesince }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">
+                                    <i class="fa-solid fa-check-circle text-success mb-2" style="font-size: 2rem;"></i><br>
+                                    No hay infracciones HOS recientes.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna 2: Gráfico de Tendencias -->
+        <div class="col-lg-5 mb-4">
+            <div class="glass-panel" style="height: 100%;">
+                <div class="panel-header border-bottom border-secondary pb-3 mb-3">
+                    <h5 style="color: var(--text-color); margin: 0; font-weight: 600;">
+                        <i class="fa-solid fa-chart-area text-info me-2"></i> Tendencia de Infracciones (7 Días)
+                    </h5>
+                </div>
+                <div id="hosTrendChart" style="width: 100%; height: 350px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ hos_trend_json|json_script:"hos-data" }}
+
+<style>
+    .master-container {
+        padding: 0 1.5rem 2rem 1.5rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* FORZAR GRID HORIZONTAL EN KPIs */
+    .kpi-row-override {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 1.5rem;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .kpi-row-override > .col-md-3 {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    /* FORZAR GRID HORIZONTAL EN PANELES INFERIORES */
+    .row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 1.5rem;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .row > .col-lg-7 {
+        flex: 1.4 1 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+    
+    .row > .col-lg-5 {
+        flex: 1 1 0 !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    /* KPI Cards Glassmorphism */
+    .kpi-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.3s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    
+    .kpi-card:hover { transform: translateY(-5px); }
+
+    .kpi-card.total { border-left: 4px solid #64748b; }
+    .kpi-card.info { border-left: 4px solid #10b981; }
+    .kpi-card.warning { border-left: 4px solid #f59e0b; }
+    .kpi-card.critical { border-left: 4px solid #ef4444; }
+
+    .kpi-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .total .kpi-icon { background: rgba(100, 116, 139, 0.1); color: #64748b; }
+    .info .kpi-icon { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .warning .kpi-icon { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .critical .kpi-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+    .kpi-info { display: flex; flex-direction: column; }
+    .kpi-label { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { color: var(--text-primary); font-size: 1.8rem; font-weight: 700; line-height: 1.1; margin-top: 0.2rem; }
+
+    /* Glass Panel */
+    .glass-panel {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-md);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    
+    .glass-table th, .glass-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-light);
+        color: var(--text-primary);
+    }
+    
+    .glass-table th {
+        color: var(--text-muted);
+        font-weight: 600;
+        background: rgba(0,0,0,0.2);
+    }
+    
+    .driver-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+</style>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(() => {
+        try {
+            // Obtener el JSON y parsearlo correctamente (usando textContent)
+            const rawData = document.getElementById('hos-data').textContent;
+            const hosData = JSON.parse(rawData);
+            
+            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDarkMode ? '#cbd5e1' : '#64748b';
+            const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+            const trace = {
+                x: hosData.days,
+                y: hosData.violations,
+                type: 'bar',
+                marker: {
+                    color: '#f59e0b',
+                    opacity: 0.8
+                }
+            };
+
+            const layout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: { t: 20, b: 40, l: 40, r: 20 },
+                xaxis: { 
+                    showgrid: false, 
+                    tickfont: { color: textColor },
+                    type: 'category' // Fuerza a Plotly a tratar las fechas como categorías
+                },
+                yaxis: { 
+                    gridcolor: gridColor, 
+                    tickfont: { color: textColor },
+                    dtick: 1 // Asegura que los números en el eje Y sean enteros (1, 2, 3...)
+                }
+            };
+
+            Plotly.newPlot('hosTrendChart', [trace], layout, {displayModeBar: false, responsive: true});
+        } catch (e) {
+            console.error("Plotly error:", e);
+        }
+    }, 100);
+});
+</script>
+{% endblock %}

@@ -4,6 +4,17 @@
 {% block title %}Dashboard | PIN{% endblock %}
 
 {% block content %}
+<style>
+    /* CSS Pulse Animation for Map Icons */
+    @keyframes icon-pulse {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(inherit, 0.7); }
+        70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(0, 0, 0, 0); }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+    }
+    .pulse-animation {
+        animation: icon-pulse 2s infinite;
+    }
+</style>
 <div class="dashboard-grid">
     <!-- KPIs -->
     <div class="kpi-wrapper">
@@ -13,30 +24,30 @@
             </div>
             <div class="kpi-info">
                 <h3>Flota Activa</h3>
-                <div class="value">12,450</div>
-                <div class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +4.2% esta semana</div>
+                <div class="value" id="kpi-total-trucks">{{ total_trucks }}</div>
+                <div class="trend up"><i class="fa-solid fa-check"></i> Tractomulas Registradas</div>
             </div>
         </div>
         
         <div class="glass-card kpi-card">
             <div class="kpi-icon green">
-                <i class="fa-solid fa-leaf"></i>
+                <i class="fa-solid fa-truck-moving"></i>
             </div>
             <div class="kpi-info">
-                <h3>Ahorro CO2</h3>
-                <div class="value">845k Ton</div>
-                <div class="trend up"><i class="fa-solid fa-arrow-trend-up"></i> +12% vs mes anterior</div>
+                <h3>En Operación</h3>
+                <div class="value" id="kpi-active-trucks">{{ active_trucks }}</div>
+                <div class="trend up"><i class="fa-solid fa-signal"></i> Vehículos Transmitiendo</div>
             </div>
         </div>
 
         <div class="glass-card kpi-card">
             <div class="kpi-icon yellow">
-                <i class="fa-solid fa-triangle-exclamation"></i>
+                <i class="fa-solid fa-clock-rotate-left"></i>
             </div>
             <div class="kpi-info">
                 <h3>Alertas HOS</h3>
-                <div class="value">34</div>
-                <div class="trend down"><i class="fa-solid fa-arrow-trend-down"></i> -2% vs ayer</div>
+                <div class="value" id="kpi-hos-alerts">{{ recent_hos_alerts }}</div>
+                <div class="trend down"><i class="fa-solid fa-triangle-exclamation"></i> Alertas FMCSA Activas</div>
             </div>
         </div>
 
@@ -45,9 +56,9 @@
                 <i class="fa-solid fa-map-pin"></i>
             </div>
             <div class="kpi-info">
-                <h3>Estaciones Analizadas</h3>
-                <div class="value">1,204</div>
-                <div class="trend up"><i class="fa-solid fa-check"></i> 100% Cobertura</div>
+                <h3>Estaciones Cobertura</h3>
+                <div class="value">{{ total_stations }}</div>
+                <div class="trend up"><i class="fa-solid fa-check"></i> Puntos de Descanso/Combustible</div>
             </div>
         </div>
     </div>
@@ -57,49 +68,204 @@
         <div class="widget-header" style="position: absolute; top: 1.5rem; left: 1.5rem; z-index: 10;">
             <h3>Monitoreo Geoespacial en Tiempo Real</h3>
         </div>
-        <div class="map-placeholder">
-            <div class="pulse-node"></div>
-            <h2 style="margin-top: 1rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Mapa Inmersivo (Cargando Capas GIS...)</h2>
-            <p>Rutas NHS • Truck Stops • WIM Stations</p>
-        </div>
+        <div id="mainDashboardMap" style="width: 100%; height: 100%; min-height: 450px; border-radius: inherit; background: #0f172a; z-index: 1;"></div>
     </div>
 
     <!-- Panel Analítico -->
     <div class="glass-card side-widget">
         <div class="widget-header">
-            <h3>Eventos Críticos</h3>
+            <h3>Eventos Críticos (Live)</h3>
+            <span style="font-size: 0.7rem; color: #10b981; margin-left: auto; margin-right: 10px; display: flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-circle fa-fade"></i> Auto-Sync
+            </span>
             <button class="action-btn" style="width: 30px; height: 30px; font-size: 0.8rem;"><i class="fa-solid fa-ellipsis-v"></i></button>
         </div>
-        <div class="activity-list">
-            <div class="activity-item">
-                <div class="activity-icon" style="color: #ef4444; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-weight-hanging"></i></div>
-                <div class="activity-text">
-                    <h4>Exceso de Peso Detectado</h4>
-                    <p>WIM Station TX-45 • Hace 2 min</p>
-                </div>
-            </div>
-            <div class="activity-item">
-                <div class="activity-icon" style="color: #f59e0b; background: rgba(245,158,11,0.1);"><i class="fa-solid fa-tire"></i></div>
-                <div class="activity-text">
-                    <h4>Desgaste Crítico Llantas</h4>
-                    <p>Unidad 402 • Predictivo a 500mi</p>
-                </div>
-            </div>
-            <div class="activity-item">
-                <div class="activity-icon" style="color: #10b981; background: rgba(16,185,129,0.1);"><i class="fa-solid fa-leaf"></i></div>
-                <div class="activity-text">
-                    <h4>Ruta Eco-Optimizada</h4>
-                    <p>Flota Oeste • Ahorro 12% Combustible</p>
-                </div>
-            </div>
-            <div class="activity-item">
-                <div class="activity-icon"><i class="fa-solid fa-clock"></i></div>
-                <div class="activity-text">
-                    <h4>Alerta HOS Preventiva</h4>
-                    <p>Conductor JD • Límite 11h próximo</p>
-                </div>
-            </div>
+        <div class="activity-list" id="live-alerts-list">
+            {% include "includes/live_alerts.html" %}
         </div>
     </div>
 </div>
+
+<!-- Inject the JSON data for the map -->
+{{ trucks_map_json|json_script:"fleet-data-main" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet.js -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Inicialización del Mapa
+        const map = L.map('mainDashboardMap', {
+            zoomControl: false // Movemos el control para que no tape el título
+        }).setView([39.8283, -98.5795], 4);
+        
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
+
+        // Capa oscura de CartoDB
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        try {
+            const rawFleetData = document.getElementById('fleet-data-main').textContent;
+            const fleetData = JSON.parse(rawFleetData);
+            const bounds = [];
+            
+            fleetData.forEach(truck => {
+                if (truck.lat && truck.lon) {
+                    const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
+                    const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+                    const statusText = truck.status === 'ACTIVE' ? 'OPERACIÓN NORMAL' : (truck.status === 'MAINTENANCE' ? 'ADVERTENCIA' : 'CRÍTICO');
+                    
+                    // Animación de pulso para estados críticos/advertencia
+                    const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
+                    
+                    // Icono Glassmorphism Dinámico
+                    const truckIcon = L.divIcon({
+                        html: `<div class="${pulseClass}" style="background: ${bgGlow}; border: 2px solid ${statusColor}; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);"><i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 10px;"></i></div>`,
+                        className: 'custom-leaflet-icon',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+                    
+                    const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
+                    bounds.push([truck.lat, truck.lon]);
+                    
+                    let alertHtml = '';
+                    if (truck.active_alert) {
+                        const alertIcon = truck.status === 'INACTIVE' ? 'fa-triangle-exclamation' : 'fa-wrench';
+                        alertHtml = `
+                            <div style="margin-top: 8px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 6px; border-left: 3px solid ${statusColor};">
+                                <span style="font-size: 10px; color: #64748b; font-weight: 700; display: block; margin-bottom: 2px;">ALERTA ACTIVA:</span>
+                                <span style="font-size: 11px; color: #1e293b; font-weight: 600;"><i class="fa-solid ${alertIcon}" style="color: ${statusColor}; margin-right: 4px;"></i>${truck.active_alert}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    const popupContent = `
+                        <div style="font-family: 'Inter', sans-serif; min-width: 180px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <h6 style="margin: 0 0 2px 0; font-weight: 800; color: #1e293b; font-size: 14px;">${truck.plate}</h6>
+                                    <p style="margin: 0; font-size: 11px; color: #64748b;">${truck.brand}</p>
+                                </div>
+                                <div style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; background: ${statusColor}22; color: ${statusColor};">
+                                    ${statusText}
+                                </div>
+                            </div>
+                            ${alertHtml}
+                            <div style="margin-top: 10px; text-align: center;">
+                                <button onclick="window.location.href='/dashboards/iot/'" style="background: #3b82f6; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%;">
+                                    <i class="fa-solid fa-satellite-dish me-1"></i> Ver Telemetría en Vivo
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                }
+            });
+
+            if(bounds.length > 0) {
+                map.fitBounds(bounds, {padding: [50, 50]});
+            }
+            
+            // Función AJAX para simular Live Polling
+            setInterval(function() {
+                fetch('/api/dashboard/live/')
+                    .then(response => response.json())
+                    .then(data => {
+                        // Actualizar KPIs superiores (Animación suave)
+                        const updateKPI = (id, newVal) => {
+                            const el = document.getElementById(id);
+                            if (el && el.innerText !== newVal.toString()) {
+                                el.style.opacity = 0;
+                                setTimeout(() => {
+                                    el.innerText = newVal;
+                                    el.style.opacity = 1;
+                                }, 300);
+                            }
+                        };
+                        updateKPI('kpi-total-trucks', data.total_trucks);
+                        updateKPI('kpi-active-trucks', data.active_trucks);
+                        updateKPI('kpi-hos-alerts', data.recent_hos_alerts);
+                        
+                        // Actualizar panel lateral de alertas
+                        const alertsList = document.getElementById('live-alerts-list');
+                        if (alertsList && data.latest_alerts_html) {
+                            alertsList.innerHTML = data.latest_alerts_html;
+                        }
+
+                        // Actualizar el mapa
+                        map.eachLayer((layer) => {
+                            if (layer instanceof L.Marker) {
+                                map.removeLayer(layer);
+                            }
+                        });
+                        
+                        data.trucks_map.forEach(truck => {
+                            if (truck.lat && truck.lon) {
+                                const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
+                                const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
+                                const statusText = truck.status === 'ACTIVE' ? 'OPERACIÓN NORMAL' : (truck.status === 'MAINTENANCE' ? 'ADVERTENCIA' : 'CRÍTICO');
+                                const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
+                                
+                                const truckIcon = L.divIcon({
+                                    html: `<div class="${pulseClass}" style="background: ${bgGlow}; border: 2px solid ${statusColor}; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);"><i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 10px;"></i></div>`,
+                                    className: 'custom-leaflet-icon',
+                                    iconSize: [24, 24],
+                                    iconAnchor: [12, 12]
+                                });
+                                
+                                const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
+                                
+                                let alertHtml = '';
+                                if (truck.active_alert) {
+                                    const alertIcon = truck.status === 'INACTIVE' ? 'fa-triangle-exclamation' : 'fa-wrench';
+                                    alertHtml = `
+                                        <div style="margin-top: 8px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 6px; border-left: 3px solid ${statusColor};">
+                                            <span style="font-size: 10px; color: #64748b; font-weight: 700; display: block; margin-bottom: 2px;">ALERTA ACTIVA:</span>
+                                            <span style="font-size: 11px; color: #1e293b; font-weight: 600;"><i class="fa-solid ${alertIcon}" style="color: ${statusColor}; margin-right: 4px;"></i>${truck.active_alert}</span>
+                                        </div>
+                                    `;
+                                }
+                                
+                                const popupContent = `
+                                    <div style="font-family: 'Inter', sans-serif; min-width: 180px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                            <div>
+                                                <h6 style="margin: 0 0 2px 0; font-weight: 800; color: #1e293b; font-size: 14px;">${truck.plate}</h6>
+                                                <p style="margin: 0; font-size: 11px; color: #64748b;">${truck.brand}</p>
+                                            </div>
+                                            <div style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; background: ${statusColor}22; color: ${statusColor};">
+                                                ${statusText}
+                                            </div>
+                                        </div>
+                                        ${alertHtml}
+                                        <div style="margin-top: 10px; text-align: center;">
+                                            <button onclick="window.location.href='/dashboards/iot/'" style="background: #3b82f6; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%;">
+                                                <i class="fa-solid fa-satellite-dish me-1"></i> Ver Telemetría en Vivo
+                                            </button>
+                                        </div>
+                                    </div>
+                                `;
+                                marker.bindPopup(popupContent);
+                            }
+                        });
+                    })
+                    .catch(e => console.error("Auto-sync falló", e));
+            }, 8000); // Refrescar cada 8 segundos
+
+        } catch (e) {
+            console.error("Error cargando mapa:", e);
+        }
+    });
+</script>
 {% endblock %}

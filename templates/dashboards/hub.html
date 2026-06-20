@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid mt-4 px-4">
+    <!-- Encabezado del Hub -->
+    <div class="d-flex justify-content-between align-items-center mb-5 border-bottom border-secondary pb-3">
+        <div>
+            <h2 style="color: var(--text-color); font-weight: 700; margin: 0; font-size: 1.8rem; letter-spacing: -0.5px;">
+                <i class="fa-solid fa-layer-group text-info me-3"></i> Portal de Analítica Avanzada
+            </h2>
+            <p style="color: var(--text-muted); font-size: 1.05rem; margin: 8px 0 0 0; line-height: 1.5;">
+                Selecciona un módulo para acceder a las visualizaciones en tiempo real, mapas interactivos y reportes predictivos.
+            </p>
+        </div>
+    </div>
+
+    <!-- Cuadrícula de Tarjetas (CSS Grid) -->
+    <div class="dashboard-hub-grid">
+        <!-- 1. Resumen -->
+        <a href="{% url 'dashboards:resumen' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="card-content">
+                <h3>1. Resumen Global</h3>
+                <p>Métricas ejecutivas (KPIs), estado de la flota activa y mapa general de operaciones.</p>
+            </div>
+        </a>
+
+        <!-- 2. IoT -->
+        <a href="{% url 'dashboards:monitoreo_iot' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                <i class="fa-solid fa-satellite-dish"></i>
+            </div>
+            <div class="card-content">
+                <h3>2. Monitoreo IoT</h3>
+                <p>Telemetría en tiempo real de los 18 sensores de llantas por vehículo (Presión y Temperatura).</p>
+            </div>
+        </a>
+
+        <!-- 3. Alertas -->
+        <a href="{% url 'dashboards:alertas' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
+                <i class="fa-solid fa-bell"></i>
+            </div>
+            <div class="card-content">
+                <h3>3. Centro de Alertas</h3>
+                <p>Gestión unificada de emergencias, fallos críticos y advertencias del sistema.</p>
+            </div>
+        </a>
+
+        <!-- 4. HOS -->
+        <a href="{% url 'dashboards:hos_compliance' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                <i class="fa-solid fa-user-clock"></i>
+            </div>
+            <div class="card-content">
+                <h3>4. HOS Compliance</h3>
+                <p>Auditoría de fatiga de conductores y cumplimiento de Horas de Servicio (Reglas FMCSA).</p>
+            </div>
+        </a>
+
+        <!-- 5. Desgaste Llantas -->
+        <a href="{% url 'dashboards:desgaste_llantas' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;">
+                <i class="fa-solid fa-truck-monster"></i>
+            </div>
+            <div class="card-content">
+                <h3>5. Desgaste de Llantas</h3>
+                <p>Análisis de profundidad de banda (Tread Depth) y cálculo de vida útil restante.</p>
+            </div>
+        </a>
+
+        <!-- 6. Peso -->
+        <a href="{% url 'dashboards:peso_vehiculo' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(6, 182, 212, 0.1); color: #06b6d4;">
+                <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <div class="card-content">
+                <h3>6. Peso Vehicular</h3>
+                <p>Distribución de carga por ejes y cumplimiento de la Federal Bridge Formula.</p>
+            </div>
+        </a>
+
+        <!-- 7. Recomendaciones -->
+        <a href="{% url 'dashboards:recomendaciones' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(234, 179, 8, 0.1); color: #eab308;">
+                <i class="fa-solid fa-lightbulb"></i>
+            </div>
+            <div class="card-content">
+                <h3>7. Copiloto Inteligente</h3>
+                <p>Motor de recomendaciones automatizadas para la toma de decisiones en ruta.</p>
+            </div>
+        </a>
+
+        <!-- 8. Geoespacial -->
+        <a href="{% url 'dashboards:geoespacial' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(20, 184, 166, 0.1); color: #14b8a6;">
+                <i class="fa-solid fa-map-location-dot"></i>
+            </div>
+            <div class="card-content">
+                <h3>8. Análisis Geoespacial</h3>
+                <p>Mapas de calor (Heatmaps) y densidad operativa usando cartografía avanzada.</p>
+            </div>
+        </a>
+
+        <!-- 9. Descanso -->
+        <a href="{% url 'dashboards:estaciones_descanso' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(244, 63, 94, 0.1); color: #f43f5e;">
+                <i class="fa-solid fa-mug-hot"></i>
+            </div>
+            <div class="card-content">
+                <h3>9. Red de Descanso</h3>
+                <p>Análisis de cobertura de estaciones Love's, Pilot y Travel Centers privados.</p>
+            </div>
+        </a>
+
+        <!-- 10. Sostenibilidad -->
+        <a href="{% url 'dashboards:combustible_reciclaje' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(132, 204, 22, 0.1); color: #84cc16;">
+                <i class="fa-solid fa-leaf"></i>
+            </div>
+            <div class="card-content">
+                <h3>10. Sostenibilidad (EPA)</h3>
+                <p>Gestión de reciclaje de llantas usadas y estaciones de combustible alternativo (HD).</p>
+            </div>
+        </a>
+
+        <!-- 11. Regulación -->
+        <a href="{% url 'dashboards:regulacion_seguridad' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(100, 116, 139, 0.1); color: #64748b;">
+                <i class="fa-solid fa-gavel"></i>
+            </div>
+            <div class="card-content">
+                <h3>11. Regulación & WIM</h3>
+                <p>Ubicación de básculas dinámicas (Weigh-In-Motion) y normativas estatales DOT.</p>
+            </div>
+        </a>
+
+        <!-- 12. Predictivos -->
+        <a href="{% url 'dashboards:modelos_predictivos' %}" class="dashboard-hub-card">
+            <div class="icon-container" style="background: rgba(217, 70, 239, 0.1); color: #d946ef;">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <div class="card-content">
+                <h3>12. Modelos de ML</h3>
+                <p>Resultados y métricas de los 6 modelos predictivos de Machine Learning.</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+<style>
+    /* Estilos profesionales para el Hub de Dashboards */
+    .dashboard-hub-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        padding-bottom: 2rem;
+    }
+
+    .dashboard-hub-card {
+        display: flex;
+        align-items: flex-start;
+        padding: 1.5rem;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        text-decoration: none !important; /* Elimina subrayado de enlaces */
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .dashboard-hub-card:hover {
+        transform: translateY(-5px);
+        background: var(--bg-surface-hover);
+        border-color: var(--border-strong);
+        box-shadow: var(--shadow-md);
+    }
+
+    .dashboard-hub-card .icon-container {
+        flex-shrink: 0;
+        width: 54px;
+        height: 54px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-right: 1.2rem;
+    }
+
+    .dashboard-hub-card .card-content {
+        flex-grow: 1;
+    }
+
+    .dashboard-hub-card h3 {
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0 0 0.4rem 0;
+        letter-spacing: -0.3px;
+    }
+
+    .dashboard-hub-card p {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+</style>
+{% endblock %}

@@ -40,7 +40,10 @@ stateDiagram-v2
 
 ## 📸 Evidencia Visual
 
-> **[ 🖼️ ESPACIO PARA IMAGEN: Captura del Panel de Administración de Django mostrando los registros HOS o una alerta generada por exceso de tiempo ]**
+Se implementó el Dashboard Gerencial Frontend con diseño Glassmorphism, que permite auditar en tiempo real:
+- Barras de progreso de las Reglas FMCSA (11H, 14H, 70H).
+- Panel lateral para notificaciones de Alertas Críticas de Violación o Advertencia.
+- Se conectó un sistema de datos simulados `mock_fleet` para inyectar "ELD Logs" ficticios para pruebas comerciales.
 
 ---
-*Fase completada y auditada según el documento maestro.*
+*Fase 5 completada y auditada según el documento maestro.*

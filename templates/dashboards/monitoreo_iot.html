@@ -1,0 +1,1096 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block extra_js %}
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<style>
+    /* MASTER STYLES FOR IOT TELEMETRY */
+    .master-container {
+        padding: 2rem;
+        max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .master-header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+        margin-bottom: 2rem !important;
+        border-bottom: 1px solid var(--border-strong) !important;
+        padding-bottom: 1.5rem !important;
+        width: 100% !important;
+    }
+
+    .master-title {
+        color: var(--text-primary) !important;
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
+        margin: 0 !important;
+        letter-spacing: -0.5px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    .master-breadcrumb {
+        display: flex !important;
+        gap: 10px !important;
+        margin-bottom: 10px !important;
+        font-size: 0.95rem !important;
+        align-items: center !important;
+    }
+    
+    .master-breadcrumb a {
+        color: var(--brand-blue) !important;
+        text-decoration: none !important;
+        font-weight: 500 !important;
+    }
+
+    .master-breadcrumb span {
+        color: var(--text-muted) !important;
+    }
+
+    .kpi-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 1.5rem !important;
+        margin-bottom: 2.5rem !important;
+        width: 100% !important;
+    }
+
+    .kpi-card-master {
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 16px !important;
+        padding: 1.8rem !important;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
+        transition: transform 0.2s, box-shadow 0.2s !important;
+        height: 120px !important;
+    }
+
+    .kpi-card-master:hover {
+        transform: translateY(-5px) !important;
+        box-shadow: var(--shadow-glass) !important;
+        background: var(--bg-surface-solid) !important;
+    }
+
+    .kpi-info {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+    }
+
+    .kpi-info h6 {
+        color: var(--text-muted) !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        margin: 0 0 5px 0 !important;
+    }
+
+    .kpi-info h2 {
+        color: var(--text-primary) !important;
+        font-size: 2.2rem !important;
+        font-weight: 800 !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+    }
+
+    .kpi-icon {
+        width: 65px !important;
+        height: 65px !important;
+        border-radius: 14px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.8rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* IOT SPECIFIC LAYOUT */
+    .iot-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+        width: 100%;
+    }
+
+    .bottom-grid {
+        display: grid;
+        grid-template-columns: 50% 50%;
+        gap: 1.5rem;
+    }
+
+    .panel-glass {
+        background: var(--bg-surface) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: 16px !important;
+        padding: 1.5rem !important;
+        backdrop-filter: blur(12px) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .panel-title {
+        color: var(--text-primary);
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* DIGITAL TWIN (18-Wheeler Top View) */
+    .digital-twin-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 450px;
+        position: relative;
+        gap: 2rem; /* Separación entre el camión y el panel */
+    }
+
+    .truck-chassis {
+        width: 120px;
+        height: 380px;
+        border: 2px solid rgba(0, 175, 239, 0.3);
+        border-radius: 12px;
+        position: relative;
+        background: linear-gradient(180deg, rgba(0, 175, 239, 0.05) 0%, rgba(0, 0, 0, 0) 100%);
+        flex-shrink: 0; /* Evita que el camión se aplaste */
+    }
+    
+    .cab-box {
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        right: -5px;
+        height: 80px;
+        background: rgba(0, 175, 239, 0.1);
+        border: 2px solid var(--brand-blue);
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .cab-box i {
+        color: var(--brand-blue);
+        font-size: 2rem;
+        opacity: 0.8;
+    }
+
+    .axle {
+        position: absolute;
+        left: -35px;
+        right: -35px;
+        height: 6px;
+        background: var(--border-strong);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Eje 1 (Steer) */
+    .axle.steer { top: 30px; }
+    /* Ejes Drive */
+    .axle.drive-1 { top: 120px; }
+    .axle.drive-2 { top: 160px; }
+    /* Ejes Trailer */
+    .axle.trailer-1 { top: 290px; }
+    .axle.trailer-2 { top: 330px; }
+
+    .tire {
+        width: 22px;
+        height: 45px;
+        background: #10b981; /* Verde activo */
+        border-radius: 6px;
+        position: relative;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+    
+    .tire.warning {
+        background: #f59e0b;
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        animation: blink 2s infinite;
+    }
+    
+    .tire.danger {
+        background: #ef4444;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        animation: blink 1s infinite;
+    }
+
+    .tire-pair {
+        display: flex;
+        gap: 4px;
+    }
+
+    /* Escaneo láser animado sobre el chasis */
+    .laser-scan {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: var(--brand-blue);
+        box-shadow: 0 0 15px var(--brand-blue), 0 0 30px var(--brand-blue);
+        animation: scan 4s linear infinite;
+        opacity: 0.7;
+    }
+
+    @keyframes scan {
+        0% { top: 0; }
+        50% { top: 100%; }
+        100% { top: 0; }
+    }
+
+    @keyframes blink {
+        0% { opacity: 1; }
+        50% { opacity: 0.4; }
+        100% { opacity: 1; }
+    }
+
+    /* CONSOLA DE TELEMETRÍA (Live Feed) */
+    .console-feed {
+        background: #0f172a;
+        border-radius: 12px;
+        padding: 1rem;
+        height: 200px;
+        overflow-y: auto;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.85rem;
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+    }
+    
+    .console-feed p {
+        margin: 0 0 4px 0;
+        line-height: 1.4;
+    }
+    .console-feed .timestamp { color: #94a3b8; margin-right: 10px; }
+    .console-feed .key { color: #38bdf8; }
+    .console-feed .val { color: #fcd34d; }
+
+    /* TABLE STYLES FOR FLEET VIEW */
+    .fleet-table-container {
+        max-height: 450px;
+        overflow-y: auto;
+        overflow-x: auto; /* Permite scroll horizontal si es necesario */
+        width: 100%;
+    }
+    
+    .fleet-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        min-width: 550px; /* Forzar un ancho mínimo para que nunca se aplaste */
+    }
+    
+    .fleet-table th {
+        background: var(--bg-surface-solid);
+        padding: 1rem 0.5rem; /* Reducir padding lateral para ganar espacio */
+        font-weight: 600;
+        color: var(--text-secondary);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 2px solid var(--border-strong);
+        white-space: nowrap; /* Evita que el texto se parta en múltiples líneas */
+    }
+    
+    .fleet-table td {
+        padding: 1rem 0.5rem; /* Reducir padding lateral para ganar espacio */
+        border-bottom: 1px solid var(--border-light);
+        color: var(--text-primary);
+        vertical-align: middle;
+        white-space: nowrap; /* Evita que el texto se parta en múltiples líneas */
+    }
+    
+    .fleet-table tr {
+        transition: background-color 0.2s;
+        cursor: pointer;
+    }
+    
+    .fleet-table tr:hover {
+        background: rgba(0, 175, 239, 0.05);
+    }
+    
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .status-ok { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+    .status-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .status-critical { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+    /* PREDICTIVE INSIGHTS PANEL */
+    .predictive-panel {
+        width: 100%;
+        max-width: 400px; /* Evita que sea muy ancho */
+        padding: 1rem;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        display: none; /* Oculto por defecto, se muestra solo en Warning/Critical */
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .insight-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+    
+    .insight-label { color: var(--text-muted); }
+    .insight-value { font-weight: bold; color: var(--text-primary); }
+
+    /* SWITCHER VIEWS */
+    #fleet-view { display: block; }
+    #twin-view { display: none; }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+        .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        .bottom-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+        .kpi-grid { grid-template-columns: 1fr !important; }
+        .master-header { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
+    }
+</style>
+
+<div class="master-container">
+    <!-- Header -->
+    <div class="master-header">
+        <div>
+            <div class="master-breadcrumb">
+                <a href="{% url 'dashboards:hub' %}"><i class="fa-solid fa-layer-group me-1"></i> Hub de Analítica</a>
+                <span>/</span>
+                <span>Monitoreo IoT en Tiempo Real</span>
+            </div>
+            <h1 class="master-title"><i class="fa-solid fa-satellite-dish text-info me-3 fa-beat-fade" style="--fa-beat-fade-opacity: 0.5; --fa-animation-duration: 2s;"></i> Centro de Telemetría IoT</h1>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-outline-info" style="border-radius: 8px;" onclick="location.reload()">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi-card-master" style="border-bottom: 4px solid #3b82f6;">
+            <div class="kpi-info">
+                <h6>Sensores Activos (Red)</h6>
+                <h2>{{ active_sensors|intcomma }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                <i class="fa-solid fa-microchip"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #10b981;">
+            <div class="kpi-info">
+                <h6>Data Ingestada (24h)</h6>
+                <h2>{{ data_processed_24h|intcomma }}</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                <i class="fa-solid fa-database"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #8b5cf6;">
+            <div class="kpi-info">
+                <h6>Latencia del Sistema</h6>
+                <h2>{{ system_latency }} <span style="font-size: 1rem; color: var(--text-muted);">ms</span></h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                <i class="fa-solid fa-network-wired"></i>
+            </div>
+        </div>
+
+        <div class="kpi-card-master" style="border-bottom: 4px solid #10b981;">
+            <div class="kpi-info">
+                <h6>Salud de la Red 5G</h6>
+                <h2>{{ network_health }}%</h2>
+            </div>
+            <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                <i class="fa-solid fa-signal"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- IOT GRID -->
+    <div class="iot-container">
+        
+        <!-- Parte Superior: Gráficas y Consola -->
+        <div class="bottom-grid">
+            
+            <!-- Gráfica Plotly -->
+            <div class="panel-glass">
+                <div class="panel-header">
+                    <h3 class="panel-title"><i class="fa-solid fa-chart-area text-info"></i> Telemetría Histórica (Sensores Críticos)</h3>
+                </div>
+                <div id="timeseriesChart" style="height: 250px;"></div>
+            </div>
+
+            <!-- Consola de Streaming -->
+            <div class="panel-glass">
+                <div class="panel-header" style="margin-bottom: 0.5rem;">
+                    <h3 class="panel-title"><i class="fa-solid fa-terminal text-info"></i> Streaming Payload (Raw Data)</h3>
+                </div>
+                <div class="console-feed" id="liveFeed" style="height: 250px;">
+                    <!-- Se llena con JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Parte Inferior: Gemelo Digital o Lista de Flota -->
+        <div class="panel-glass">
+            
+            <!-- CONTENEDOR 1: LISTA DE FLOTA (Por defecto) -->
+            <div id="fleet-view">
+                <div class="panel-header">
+                    <h3 class="panel-title"><i class="fa-solid fa-list-check text-info"></i> Monitoreo Global de Flota</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill px-3 py-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Priorizando Críticos</span>
+                    </div>
+                </div>
+                
+                <div class="fleet-table-container">
+                    <table class="fleet-table">
+                        <thead>
+                            <tr>
+                                <th>Unidad</th>
+                                <th>Estado</th>
+                                <th>Temp Prom.</th>
+                                <th>PSI Prom.</th>
+                                <th>Desgaste Prom.</th>
+                                <th>Último Ping</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fleet-table-body">
+                            {% for truck in fleet_list %}
+                            <tr id="row-{{ truck.plate }}" onclick="openDigitalTwin('{{ truck.plate }}', '{{ truck.brand }} {{ truck.model }}', '{{ truck.status }}')">
+                                <td>
+                                    <strong>{{ truck.plate }}</strong><br>
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">{{ truck.brand }}</span>
+                                </td>
+                                <td id="status-{{ truck.plate }}">
+                                    {% if truck.status == 'OK' %}
+                                        <span class="status-badge status-ok"><i class="fa-solid fa-check-circle"></i> Normal</span>
+                                    {% elif truck.status == 'WARNING' %}
+                                        <span class="status-badge status-warning"><i class="fa-solid fa-exclamation-circle"></i> Revisar</span>
+                                    {% else %}
+                                        <span class="status-badge status-critical"><i class="fa-solid fa-radiation fa-beat-fade"></i> Crítico</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span id="temp-{{ truck.plate }}" style="{% if truck.avg_temp > 120 %}color: #ef4444; font-weight: bold;{% endif %}">
+                                        {{ truck.avg_temp }} °F
+                                    </span>
+                                </td>
+                                <td>
+                                    <span id="psi-{{ truck.plate }}" style="{% if truck.avg_psi < 90 %}color: #ef4444; font-weight: bold;{% endif %}">
+                                        {{ truck.avg_psi }} PSI
+                                    </span>
+                                </td>
+                                <td>
+                                    <span id="wear-{{ truck.plate }}" style="{% if truck.avg_wear <= 4.0 %}color: #ef4444; font-weight: bold;{% endif %}">
+                                        {{ truck.avg_wear }} mm
+                                    </span>
+                                </td>
+                                <td style="font-size: 0.85rem; color: var(--text-muted);">Hace unos instantes</td>
+                                <td>
+                                    <button onclick="event.stopPropagation(); openDigitalTwin('{{ truck.plate }}', '{{ truck.brand }} {{ truck.model }}', '{{ truck.status }}')" style="background: rgba(0, 175, 239, 0.1); color: var(--brand-blue); border: 1px solid var(--brand-blue); padding: 5px 12px; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600;" onmouseover="this.style.background='var(--brand-blue)'; this.style.color='white';" onmouseout="this.style.background='rgba(0, 175, 239, 0.1)'; this.style.color='var(--brand-blue)';">
+                                        <i class="fa-solid fa-eye"></i> Ver
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR 2: GEMELO DIGITAL (Oculto por defecto) -->
+            <div id="twin-view">
+                <div class="panel-header">
+                    <h3 class="panel-title"><i class="fa-solid fa-truck-front text-info"></i> Gemelo Digital (Inspección)</h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="twin-status-badge" class="badge rounded-pill px-3 py-2"></span>
+                        <button class="btn btn-sm btn-secondary" onclick="closeDigitalTwin()" style="border-radius: 8px;"><i class="fa-solid fa-arrow-left me-1"></i> Volver</button>
+                    </div>
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-top: -10px;">Visualización en vivo: <strong id="twin-vehicle-name">SIM-104 (Kenworth T680)</strong></p>
+                
+                <div class="digital-twin-container">
+                <div class="truck-chassis">
+                    <div class="cab-box"><i class="fa-solid fa-truck"></i></div>
+                    <div class="laser-scan"></div>
+                    
+                    <!-- Steer Axle -->
+                    <div class="axle steer">
+                        <div class="tire" id="tire-FL-1" title="FL-1 | Normal"></div>
+                        <div class="tire" id="tire-FR-1" title="FR-1 | Normal"></div>
+                    </div>
+                    
+                    <!-- Drive Axle 1 -->
+                    <div class="axle drive-1">
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-RL-1" title="RL-1 | Normal"></div>
+                            <div class="tire" id="tire-RL-2" title="RL-2 | Normal"></div>
+                        </div>
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-RR-1" title="RR-1 | Normal"></div>
+                            <div class="tire" id="tire-RR-2" title="RR-2 | Normal"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Drive Axle 2 -->
+                    <div class="axle drive-2">
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-RL-3" title="RL-3 | Normal"></div>
+                            <div class="tire" id="tire-RL-4" title="RL-4 | Normal"></div>
+                        </div>
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-RR-3" title="RR-3 | Normal"></div>
+                            <div class="tire" id="tire-RR-4" title="RR-4 | Normal"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trailer Axle 1 -->
+                    <div class="axle trailer-1">
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-TL-1" title="TL-1 | Normal"></div>
+                            <div class="tire" id="tire-TL-2" title="TL-2 | Normal"></div>
+                        </div>
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-TR-1" title="TR-1 | Normal"></div>
+                            <div class="tire" id="tire-TR-2" title="TR-2 | Normal"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trailer Axle 2 -->
+                    <div class="axle trailer-2">
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-TL-3" title="TL-3 | Normal"></div>
+                            <div class="tire" id="tire-TL-4" title="TL-4 | Normal"></div>
+                        </div>
+                        <div class="tire-pair">
+                            <div class="tire" id="tire-TR-3" title="TR-3 | Normal"></div>
+                            <div class="tire" id="tire-TR-4" title="TR-4 | Normal"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DIAGNÓSTICO IA (Aparece en fallas) -->
+                <div class="predictive-panel" id="ai-diagnostic-panel">
+                    <h4 style="color: var(--brand-blue); font-size: 1rem; margin-bottom: 1rem;"><i class="fa-solid fa-robot"></i> Diagnóstico PIN-AI</h4>
+                    <div class="insight-row">
+                        <span class="insight-label">Falla Detectada:</span>
+                        <span class="insight-value" id="ai-fault-type" style="color: #ef4444;">--</span>
+                    </div>
+                    <div class="insight-row">
+                        <span class="insight-label">Ubicación:</span>
+                        <span class="insight-value" id="ai-fault-location">--</span>
+                    </div>
+                    <div class="insight-row" id="ai-wear-row" style="display: none;">
+                        <span class="insight-label">Profundidad de Banda:</span>
+                        <span class="insight-value" id="ai-fault-wear" style="color: #ef4444;">--</span>
+                    </div>
+                    <div class="insight-row" id="ai-psi-row" style="display: none;">
+                        <span class="insight-label">Presión Actual (PSI):</span>
+                        <span class="insight-value" id="ai-fault-psi" style="color: #ef4444;">--</span>
+                    </div>
+                    <div class="insight-row">
+                        <span class="insight-label">Tiempo Estimado de Falla:</span>
+                        <span class="insight-value" id="ai-ttf" style="color: #f59e0b;">--</span>
+                    </div>
+                    <div class="insight-row" style="margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                        <span class="insight-label">Recomendación:</span>
+                        <span class="insight-value" id="ai-recommendation" style="color: #10b981; font-size: 0.85rem;">Detener unidad en próximo Truck Stop</span>
+                    </div>
+                </div>
+            </div>
+
+            </div> <!-- End Twin View -->
+        </div> <!-- End Panel Inferior -->
+
+    </div>
+</div>
+
+{{ iot_timeseries_json|json_script:"iot-data" }}
+{{ fleet_list_json|json_script:"fleet-data" }}
+
+<script>
+    // --- PLOTLY TIMESERIES ---
+    const timeseriesData = JSON.parse(document.getElementById('iot-data').textContent);
+    let fleetList = JSON.parse(document.getElementById('fleet-data').textContent);
+    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDarkMode ? '#cbd5e1' : '#64748b';
+    const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+    const trace1 = {
+        x: timeseriesData.times,
+        y: timeseriesData.temp,
+        name: 'Temperatura (°F)',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: {color: '#f59e0b', width: 3, shape: 'spline'},
+        marker: {size: 6}
+    };
+
+    const trace2 = {
+        x: timeseriesData.times,
+        y: timeseriesData.pressure,
+        name: 'Presión (PSI)',
+        type: 'scatter',
+        mode: 'lines',
+        line: {color: '#3b82f6', width: 3, shape: 'spline', dash: 'dot'},
+    };
+
+    const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 10, b: 30, l: 40, r: 10 },
+        legend: { orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center', font: { color: textColor } },
+        xaxis: { showgrid: false, tickfont: { color: textColor } },
+        yaxis: { gridcolor: gridColor, tickfont: { color: textColor } }
+    };
+
+    // Make plot variable global so we can update it
+    let iotPlot = null;
+    
+    // Initialize Plotly only if the container exists and is visible
+    setTimeout(() => {
+        try {
+            iotPlot = Plotly.newPlot('timeseriesChart', [trace1, trace2], layout, {displayModeBar: false, responsive: true});
+        } catch (e) {
+            console.error("Plotly error on init:", e);
+        }
+    }, 100);
+
+    // --- MANEJO DE VISTAS Y MOTOR DE SIMULACIÓN ---
+    let currentVehiclePlate = null;
+    const allTires = ['FL-1', 'FR-1', 'RL-1', 'RL-2', 'RR-1', 'RR-2', 'RL-3', 'RL-4', 'RR-3', 'RR-4', 'TL-1', 'TL-2', 'TR-1', 'TR-2', 'TL-3', 'TL-4', 'TR-3', 'TR-4'];
+    let simulatedTrucks = {}; // Almacena el estado de las llantas por vehículo
+    
+    // Función helper para obtener los límites legales según la llanta
+    function getLimits(tireId) {
+        let isSteer = tireId === 'FL-1' || tireId === 'FR-1';
+        // Límites legales colombianos / internacionales (mm)
+        // Steer (Direccionales): Warning <= 4.0 mm, Critical < 3.2 mm (Límite internacional estricto)
+        // Otras (Tracción/Remolque): Warning <= 3.0 mm, Critical < 1.6 mm (Mínimo legal universal)
+        return {
+            warning: isSteer ? 4.0 : 3.0,
+            critical: isSteer ? 3.2 : 1.6
+        };
+    }
+    
+    // Inicializar datos para todos los camiones
+    fleetList.forEach(truck => {
+        simulatedTrucks[truck.plate] = {
+            tires: {},
+            avgTemp: truck.avg_temp,
+            avgPsi: truck.avg_psi,
+            avgWear: truck.avg_wear,
+            status: truck.status,
+            brand: truck.brand,
+            model: truck.model,
+            aiDiagnostic: null
+        };
+        
+        // Asignar llantas base
+        allTires.forEach(t => {
+            let isSteer = t === 'FL-1' || t === 'FR-1';
+            // Llantas nuevas en mm: Steer ~15-16mm, Otras ~20-22mm
+            let initialWear = isSteer ? (Math.random() * 5 + 10) : (Math.random() * 8 + 12); 
+            
+            simulatedTrucks[truck.plate].tires[t] = {
+                psi: 100, temp: 105, wear: initialWear, status: 'OK'
+            };
+        });
+        
+        // Si el camión empezó como WARNING o CRITICAL, dañar una llanta al azar
+        if(truck.status !== 'OK') {
+            let badTire = allTires[Math.floor(Math.random() * allTires.length)];
+            let tireData = simulatedTrucks[truck.plate].tires[badTire];
+            let isSteer = badTire === 'FL-1' || badTire === 'FR-1';
+            
+            // Límites legales colombianos / internacionales (mm)
+            // Steer (Direccionales): 3.2 mm (Límite FMCSA 4/32") o 2.0 mm (Mínimo local estricto)
+            // Otras (Tracción/Remolque): 1.6 mm (Mínimo legal universal)
+            let limitWarning = isSteer ? 4.0 : 3.0; 
+            let limitCritical = isSteer ? 3.2 : 1.6;
+            
+            let issueType = Math.random();
+            
+            if(truck.status === 'WARNING') {
+                tireData.status = 'WARNING';
+                if(issueType < 0.5) {
+                    tireData.temp = 135;
+                    tireData.psi = 115;
+                    simulatedTrucks[truck.plate].aiDiagnostic = {
+                        type: 'Recalentamiento Anormal', color: '#f59e0b', loc: badTire, ttf: '45 - 60 Minutos', 
+                        psi: tireData.psi, wear: null, rec: 'Reducir velocidad y revisar frenos'
+                    };
+                } else {
+                    tireData.wear = limitWarning + (Math.random() * 0.5); // Cerca del límite, bajando
+                    simulatedTrucks[truck.plate].aiDiagnostic = {
+                        type: 'Desgaste Crítico (Próximo al Límite)', color: '#f59e0b', loc: badTire, ttf: 'Programar Cambio',
+                        psi: null, wear: tireData.wear, rec: 'Reemplazo programado al llegar a base'
+                    };
+                }
+            } else {
+                tireData.status = 'CRITICAL';
+                if(issueType < 0.5) {
+                    tireData.temp = 150;
+                    tireData.psi = 70;
+                    simulatedTrucks[truck.plate].aiDiagnostic = {
+                        type: 'Pérdida Crítica de Presión', color: '#ef4444', loc: badTire, ttf: 'INMINENTE (< 5 Minutos)',
+                        psi: tireData.psi, wear: null, rec: 'Detener unidad inmediatamente en arcén'
+                    };
+                } else {
+                    tireData.wear = limitCritical - (Math.random() * 0.5); // Por debajo del límite, ilegal
+                    simulatedTrucks[truck.plate].aiDiagnostic = {
+                        type: 'Violación Legal (Profundidad Ilegal)', color: '#ef4444', loc: badTire, ttf: 'OUT OF SERVICE (OOS)',
+                        psi: null, wear: tireData.wear, rec: 'Vehículo inmovilizado. Requiere llanta nueva in situ.'
+                    };
+                }
+            }
+        }
+    });
+
+    function openDigitalTwin(plate, name, initialStatus) {
+        currentVehiclePlate = plate;
+        
+        // Actualizar UI
+        document.getElementById('fleet-view').style.display = 'none';
+        document.getElementById('twin-view').style.display = 'block';
+        document.getElementById('twin-vehicle-name').innerText = `${plate} (${name})`;
+        
+        renderDigitalTwin();
+    }
+    
+    function renderDigitalTwin() {
+        if(!currentVehiclePlate || !simulatedTrucks[currentVehiclePlate]) return;
+        
+        const truckData = simulatedTrucks[currentVehiclePlate];
+        
+        // Panel Predictivo IA
+        const aiPanel = document.getElementById('ai-diagnostic-panel');
+        const aiType = document.getElementById('ai-fault-type');
+        const aiLoc = document.getElementById('ai-fault-location');
+        const aiTTF = document.getElementById('ai-ttf');
+        const aiWearRow = document.getElementById('ai-wear-row');
+        const aiPsiRow = document.getElementById('ai-psi-row');
+        const aiWearVal = document.getElementById('ai-fault-wear');
+        const aiPsiVal = document.getElementById('ai-fault-psi');
+        const aiRec = document.getElementById('ai-recommendation');
+        
+        if(truckData.status === 'OK' || !truckData.aiDiagnostic) {
+            aiPanel.style.display = 'none';
+        } else {
+            aiPanel.style.display = 'block';
+            aiType.innerText = truckData.aiDiagnostic.type;
+            aiType.style.color = truckData.aiDiagnostic.color;
+            aiLoc.innerText = `Llanta ${truckData.aiDiagnostic.loc}`;
+            aiTTF.innerText = truckData.aiDiagnostic.ttf;
+            aiTTF.style.color = truckData.aiDiagnostic.color;
+            aiRec.innerText = truckData.aiDiagnostic.rec;
+            
+            if(truckData.aiDiagnostic.wear) {
+                aiWearRow.style.display = 'flex';
+                aiPsiRow.style.display = 'none';
+                aiWearVal.innerText = `${truckData.aiDiagnostic.wear.toFixed(1)} mm`;
+            } else {
+                aiWearRow.style.display = 'none';
+                aiPsiRow.style.display = 'flex';
+                aiPsiVal.innerText = `${truckData.aiDiagnostic.psi.toFixed(1)} PSI`;
+            }
+        }
+        
+        // Actualizar UI de cada llanta
+        allTires.forEach(tId => {
+            const el = document.getElementById(`tire-${tId}`);
+            if(el) {
+                const tData = truckData.tires[tId];
+                el.className = 'tire'; // reset
+                if(tData.status === 'WARNING') {
+                    el.className = 'tire warning';
+                    el.style.background = '#f59e0b';
+                    el.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.4)';
+                } else if(tData.status === 'CRITICAL') {
+                    el.className = 'tire danger';
+                    el.style.background = '#ef4444';
+                    el.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.4)';
+                } else {
+                    el.style.background = '#10b981';
+                    el.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.4)';
+                }
+                el.title = `${tId} | ${tData.psi.toFixed(1)} PSI | ${tData.temp.toFixed(1)}°F | Profundidad: ${tData.wear.toFixed(1)} mm`;
+            }
+        });
+        
+        // Actualizar Badge
+        const badge = document.getElementById('twin-status-badge');
+        if(truckData.status === 'OK') {
+            badge.className = 'badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-2';
+            badge.innerHTML = '<i class="fa-solid fa-check-circle me-1"></i> Normal';
+        } else if(truckData.status === 'WARNING') {
+            badge.className = 'badge bg-warning bg-opacity-25 text-warning rounded-pill px-3 py-2';
+            badge.innerHTML = '<i class="fa-solid fa-exclamation-circle me-1"></i> Revisar';
+        } else {
+            badge.className = 'badge bg-danger bg-opacity-25 text-danger rounded-pill px-3 py-2';
+            badge.innerHTML = '<i class="fa-solid fa-radiation fa-beat-fade me-1"></i> Crítico';
+        }
+        
+        // Actualizar Chart Plotly con los datos del camión (promedios)
+        // Generamos un pequeño histórico sintético terminando en el valor actual
+        let newTempData = [];
+        let newPsiData = [];
+        
+        if (iotPlot) {
+            Plotly.deleteTraces('timeseriesChart', [0, 1]);
+        }
+        for(let i=0; i<24; i++) {
+            newTempData.push((truckData.avgTemp + (Math.random()*4-2)).toFixed(1));
+            newPsiData.push((truckData.avgPsi + (Math.random()*2-1)).toFixed(1));
+        }
+        
+        try {
+            Plotly.addTraces('timeseriesChart', [
+                {
+                    x: timeseriesData.times,
+                    y: newTempData,
+                    name: `Temp (°F) [${currentVehiclePlate}]`,
+                    type: 'scatter', mode: 'lines+markers',
+                    line: {color: '#f59e0b', width: 3, shape: 'spline'}
+                },
+                {
+                    x: timeseriesData.times,
+                    y: newPsiData,
+                    name: `PSI [${currentVehiclePlate}]`,
+                    type: 'scatter', mode: 'lines',
+                    line: {color: '#3b82f6', width: 3, shape: 'spline', dash: 'dot'}
+                }
+            ]);
+        } catch(e) {}
+    }
+
+    function closeDigitalTwin() {
+        document.getElementById('twin-view').style.display = 'none';
+        document.getElementById('fleet-view').style.display = 'block';
+        currentVehiclePlate = null;
+        
+        // Restaurar Plotly al global
+        if(iotPlot) {
+            Plotly.deleteTraces('timeseriesChart', [0, 1]);
+            Plotly.addTraces('timeseriesChart', [trace1, trace2]);
+        }
+    }
+
+    // MOTOR DE SIMULACIÓN EN TIEMPO REAL (Ejecuta cada 2.5s)
+    setInterval(() => {
+        let needsTableRender = false;
+        
+        fleetList.forEach(truck => {
+            const tData = simulatedTrucks[truck.plate];
+            let sumPsi = 0, sumTemp = 0, sumWear = 0;
+            
+            // Simular fluctuación en todas las llantas
+            allTires.forEach(tId => {
+                let tire = tData.tires[tId];
+                let limits = getLimits(tId);
+                
+                // El desgaste solo decrece (nunca sube a menos que se cambie la llanta)
+                // Se simula un desgaste MUY LENTO constante, o un poco más rápido si hay fricción
+                let wearDecrease = tire.status === 'WARNING' ? (Math.random() * 0.05) : (Math.random() * 0.01);
+                tire.wear -= wearDecrease;
+                if(tire.wear < 0) tire.wear = 0;
+                
+                // PIN EVALÚA EL DESGASTE AUTÓNOMAMENTE (Sin intervención externa)
+                // Si la llanta cruzó el umbral crítico de desgaste:
+                if (tire.wear < limits.critical && tire.status !== 'CRITICAL') {
+                    tire.status = 'CRITICAL';
+                    tData.status = 'CRITICAL';
+                    truck.status = 'CRITICAL';
+                    tData.aiDiagnostic = { type: 'Violación Legal (Profundidad Ilegal)', color: '#ef4444', loc: tId, ttf: 'OUT OF SERVICE (OOS)', psi: null, wear: tire.wear, rec: 'Vehículo inmovilizado. Cambio in situ.' };
+                    needsTableRender = true;
+                } 
+                // Si cruzó el umbral de advertencia:
+                else if (tire.wear <= limits.warning && tire.wear >= limits.critical && tire.status === 'OK') {
+                    tire.status = 'WARNING';
+                    tData.status = 'WARNING';
+                    truck.status = 'WARNING';
+                    tData.aiDiagnostic = { type: 'Desgaste Irregular (Aviso IA)', color: '#f59e0b', loc: tId, ttf: 'Programar Cambio', psi: null, wear: tire.wear, rec: 'Reemplazo al llegar a base' };
+                    needsTableRender = true;
+                }
+
+                if(tire.status === 'OK') {
+                    tire.psi += (Math.random() * 1 - 0.5);
+                    tire.temp += (Math.random() * 2 - 1);
+                    // Mantener en límites normales
+                    if(tire.psi < 95) tire.psi = 95; if(tire.psi > 105) tire.psi = 105;
+                    if(tire.temp < 90) tire.temp = 90; if(tire.temp > 115) tire.temp = 115;
+                } else if (tire.status === 'WARNING') {
+                    tire.temp += (Math.random() * 2); // Sube temp
+                    if(tire.temp > 140) tire.temp = 140;
+                } else { // CRITICAL
+                    tire.psi -= (Math.random() * 2); // Baja presión
+                    if(tire.psi < 50) tire.psi = 50;
+                }
+                sumPsi += tire.psi;
+                sumTemp += tire.temp;
+                sumWear += tire.wear;
+            });
+            
+            // Recalcular promedios
+            tData.avgPsi = sumPsi / 18;
+            tData.avgTemp = sumTemp / 18;
+            tData.avgWear = sumWear / 18;
+            
+            // Posibilidad de que un camión sano sufra un daño repentino de PRESIÓN o TEMP (Pinchazo, Freno pegado)
+            if(tData.status === 'OK' && Math.random() < 0.02) {
+                tData.status = Math.random() > 0.5 ? 'WARNING' : 'CRITICAL';
+                let badTire = allTires[Math.floor(Math.random() * allTires.length)];
+                let target = tData.tires[badTire];
+                
+                if(tData.status === 'WARNING') {
+                    target.status = 'WARNING';
+                    target.temp = 130;
+                    tData.aiDiagnostic = { type: 'Fricción Detectada', color: '#f59e0b', loc: badTire, ttf: 'En observación', psi: target.psi, wear: null, rec: 'Reducir velocidad' };
+                } else {
+                    target.status = 'CRITICAL';
+                    target.psi = 80;
+                    tData.aiDiagnostic = { type: 'Fuga de Aire Rápida', color: '#ef4444', loc: badTire, ttf: '< 10 Minutos', psi: target.psi, wear: null, rec: 'Detener unidad inmediatamente' };
+                }
+                truck.status = tData.status; // update original list
+                needsTableRender = true;
+            }
+            
+            // Actualizar fila en la tabla si existe
+            const row = document.getElementById(`row-${truck.plate}`);
+            if(row) {
+                document.getElementById(`temp-${truck.plate}`).innerText = `${tData.avgTemp.toFixed(1)} °F`;
+                document.getElementById(`psi-${truck.plate}`).innerText = `${tData.avgPsi.toFixed(1)} PSI`;
+                document.getElementById(`wear-${truck.plate}`).innerText = `${tData.avgWear.toFixed(1)} mm`;
+                
+                // Actualizar badge si cambió status
+                if(needsTableRender) {
+                    const statusTd = document.getElementById(`status-${truck.plate}`);
+                    if(tData.status === 'WARNING') {
+                        statusTd.innerHTML = '<span class="status-badge status-warning"><i class="fa-solid fa-exclamation-circle"></i> Revisar</span>';
+                    } else if (tData.status === 'CRITICAL') {
+                        statusTd.innerHTML = '<span class="status-badge status-critical"><i class="fa-solid fa-radiation fa-beat-fade"></i> Crítico</span>';
+                    }
+                }
+            }
+        });
+        
+        // Si el twin está abierto, re-renderizarlo para que se vean los cambios en vivo
+        if(currentVehiclePlate) {
+            renderDigitalTwin();
+        }
+    }, 2500);
+
+    // --- CONSOLA DE STREAMING EN VIVO ---
+    const feed = document.getElementById('liveFeed');
+    
+    function addLog() {
+        const now = new Date();
+        const timeStr = now.toISOString().split('T')[1].substring(0, 12);
+        
+        let plate = currentVehiclePlate;
+        if(!plate) {
+            // Escoger uno al azar de la flota
+            const randomTruck = fleetList[Math.floor(Math.random() * fleetList.length)];
+            plate = randomTruck.plate;
+        }
+        
+        const tData = simulatedTrucks[plate];
+        if(!tData) return;
+        
+        const tireId = allTires[Math.floor(Math.random() * allTires.length)];
+        const tire = tData.tires[tireId];
+        
+        const psi = tire.psi.toFixed(1);
+        const temp = tire.temp.toFixed(1);
+        const tread = tire.wear.toFixed(1);
+        
+        let statusColor = "#10b981"; // OK
+        if(tire.status === "WARNING") statusColor = "#f59e0b";
+        if(tire.status === "CRITICAL") statusColor = "#ef4444";
+        
+        const p = document.createElement('p');
+        p.innerHTML = `<span class="timestamp">[${timeStr}]</span> POST /api/iot/ <span class="key">{"device":</span> "${plate}", <span class="key">"sensor":</span> "${tireId}", <span class="key">"psi":</span> <span class="val" style="color:${statusColor}">${psi}</span>, <span class="key">"temp":</span> <span class="val" style="color:${statusColor}">${temp}</span>, <span class="key">"tread":</span> <span class="val" style="color:${statusColor}">${tread}</span><span class="key">}</span> <span style="color:#10b981;">200 OK</span>`;
+        
+        feed.appendChild(p);
+        
+        // Mantener solo los últimos 20 logs para no saturar memoria
+        if(feed.childNodes.length > 20) {
+            feed.removeChild(feed.firstChild);
+        }
+        
+        // Auto-scroll
+        feed.scrollTop = feed.scrollHeight;
+    }
+
+    // Insertar un log rápido
+    setInterval(addLog, 400);
+    
+    // Rellenar unos cuantos iniciales
+    for(let i=0; i<5; i++) { addLog(); }
+
+    // Listener para actualizar colores de Plotly si cambian el Dark Mode en el layout base
+    window.addEventListener('themeChanged', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const tColor = isDark ? '#cbd5e1' : '#64748b';
+        const gColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        
+        Plotly.relayout('timeseriesChart', {
+            'legend.font.color': tColor,
+            'xaxis.tickfont.color': tColor,
+            'yaxis.tickfont.color': tColor,
+            'yaxis.gridcolor': gColor
+        });
+    });
+</script>
+{% endblock %}
