@@ -14,9 +14,9 @@
             <i class="fa-solid fa-map-location-dot"></i>
             <span>Mapa Operativo</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="{% url 'fleet:dashboard' %}" class="nav-item {% if 'fleet' in request.path %}active{% endif %}">
             <i class="fa-solid fa-truck-fast"></i>
-            <span>Rutas NHS</span>
+            <span>Gestión de Flotas</span>
         </a>
         <a href="#" class="nav-item">
             <i class="fa-solid fa-gas-pump"></i>

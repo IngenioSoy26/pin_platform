@@ -25,6 +25,7 @@ urlpatterns = [
     path("api/locations/", api_locations, name="api_locations"),
     path("api/routes/", api_routes, name="api_routes"),
     path("admin/", admin.site.urls),
+    path("fleet/", include("apps.fleet.urls")),
 ]
 
 if settings.DEBUG:

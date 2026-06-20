@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: var(--text-color); font-weight: 600;">
+            <i class="fa-solid fa-truck-fast text-primary"></i> Panel de Despacho
+        </h2>
+        <a href="{% url 'fleet:trip_create' %}" class="btn btn-primary" style="border-radius: 8px; font-weight: 600;">
+            <i class="fa-solid fa-plus"></i> Nuevo Viaje
+        </a>
+    </div>
+
+    <!-- KPIs -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="map-controls-panel p-4" style="text-align: center;">
+                <h5 style="color: var(--text-muted);"><i class="fa-solid fa-route"></i> Total Viajes</h5>
+                <h2 style="color: var(--text-color); font-weight: bold; margin: 0;">{{ total_trips }}</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="map-controls-panel p-4" style="text-align: center; border-bottom: 4px solid #f59e0b;">
+                <h5 style="color: var(--text-muted);"><i class="fa-solid fa-truck-moving"></i> En Tránsito</h5>
+                <h2 style="color: var(--text-color); font-weight: bold; margin: 0;">{{ active_trips }}</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="map-controls-panel p-4" style="text-align: center; border-bottom: 4px solid #64748b;">
+                <h5 style="color: var(--text-muted);"><i class="fa-solid fa-clock"></i> Pendientes</h5>
+                <h2 style="color: var(--text-color); font-weight: bold; margin: 0;">{{ pending_trips }}</h2>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Viajes -->
+    <div class="map-controls-panel p-4">
+        <h4 style="color: var(--text-color); margin-bottom: 20px;">Viajes Asignados</h4>
+        
+        <div class="table-responsive">
+            <table class="table table-hover" style="color: var(--text-color);">
+                <thead>
+                    <tr>
+                        <th style="color: var(--text-muted); border-color: rgba(255,255,255,0.1);">ID</th>
+                        <th style="color: var(--text-muted); border-color: rgba(255,255,255,0.1);">Conductor</th>
+                        <th style="color: var(--text-muted); border-color: rgba(255,255,255,0.1);">Tractomula</th>
+                        <th style="color: var(--text-muted); border-color: rgba(255,255,255,0.1);">Ruta</th>
+                        <th style="color: var(--text-muted); border-color: rgba(255,255,255,0.1);">Estado</th>
+                        <th style="color: var(--text-muted); border-color: rgba(255,255,255,0.1);">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trip in trips %}
+                    <tr style="border-color: rgba(255,255,255,0.05);">
+                        <td>#{{ trip.id }}</td>
+                        <td>
+                            <strong>{{ trip.driver.first_name }} {{ trip.driver.last_name }}</strong><br>
+                            <small style="color: var(--text-muted);">CDL: {{ trip.driver.license_number }}</small>
+                        </td>
+                        <td>
+                            <i class="fa-solid fa-truck text-secondary"></i> {{ trip.truck.plate }}<br>
+                            <small style="color: var(--text-muted);">{{ trip.company.legal_name }}</small>
+                        </td>
+                        <td>
+                            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6;">{{ trip.origin_address }}</span>
+                            <i class="fa-solid fa-arrow-right mx-1" style="color: var(--text-muted);"></i>
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">{{ trip.destination_address }}</span>
+                        </td>
+                        <td>
+                            {% if trip.status == 'PENDING' %}
+                                <span class="badge bg-secondary">Pendiente</span>
+                            {% elif trip.status == 'IN_TRANSIT' %}
+                                <span class="badge bg-warning text-dark">En Tránsito</span>
+                            {% elif trip.status == 'COMPLETED' %}
+                                <span class="badge bg-success">Completado</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'fleet:trip_update' trip.id %}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px;">
+                                <i class="fa-solid fa-pen"></i> Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4" style="color: var(--text-muted);">
+                            No hay viajes asignados en este momento.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Ajustes específicos para que la tabla herede el glassmorphism */
+    .table {
+        --bs-table-bg: transparent;
+        --bs-table-color: var(--text-color);
+        --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+    }
+    body.dark-mode .table-hover tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+</style>
+{% endblock %}
