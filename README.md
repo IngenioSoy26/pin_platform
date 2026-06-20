@@ -4,24 +4,23 @@ Plataforma web IoT + Big Data para monitoreo de tractomulas, llantas, cumplimien
 
 ## Estado actual
 
-Este repositorio queda preparado con la Fase 1 del sistema final:
-- estructura completa de carpetas
-- configuracion base de Django
-- soporte para cambiar entre SQLite y PostGIS
-- configuracion minima de ASGI, WSGI y Celery
-- interfaz base con logo institucional
-- instalacion inicial simplificada para Windows
+Este repositorio se encuentra en una etapa avanzada de desarrollo (Fase 11 - Dashboards y Simuladores), incluyendo:
+- Estructura completa de carpetas y aplicaciones modulares
+- Interfaz gráfica moderna (UI/UX) con diseño Glassmorphism y temas Claro/Oscuro
+- Dashboards interactivos con Plotly.js y mapas geoespaciales en tiempo real (Leaflet + CartoDB)
+- Simulador IoT (Digital Twin) en tiempo real para telemetría de llantas (Presión, Temperatura y Desgaste FMCSA)
+- Copiloto Inteligente PIN-AI integrado
+- Informe arquitectónico de Base de Datos y Diagrama ERD
 
 ## Alcance del sistema final
 
 La meta final del proyecto incluye:
-- ETL para 16 datasets en `dataset/`
-- monitoreo IoT de 18 llantas por tractomula
-- reglas HOS FMCSA
-- monitoreo de peso y regulaciones federales
-- motor de alertas y recomendaciones
-- dashboards y API REST
-- modelos predictivos y simulador IoT
+- ETL para 14 datasets en `dataset/`
+- Monitoreo IoT de 18 llantas por tractomula (Desgaste, Presión, Temperatura)
+- Reglas HOS (FMCSA) y monitoreo de peso vehicular (WIM)
+- Motor de alertas predictivas y recomendaciones (PIN-AI)
+- Dashboards y API REST
+- Modelos predictivos y simulador IoT (Live Sync)
 
 ## Requisitos sugeridos
 
@@ -70,9 +69,9 @@ DB_HOST=localhost
 DB_PORT=5432
 ```
 
-## Dataset disponibles
+## Datasets disponibles
 
-Los 16 archivos fuente se encuentran en `dataset/` y se incorporaran en la fase de ingesta.
+Los 14 archivos fuente se encuentran en `dataset/` y se incorporarán en la fase de ingesta de datos.
 
 ## Siguientes fases
 
