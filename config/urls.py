@@ -29,6 +29,7 @@ urlpatterns = [
     path("weight/", include("apps.weight_monitoring.urls")),
     path("api/iot/", include("apps.iot_ingestion.urls")),
     path("dashboards/", include("apps.dashboards.urls")),
+    path("configuracion/", include("apps.data_ingestion.urls")),
 ]
 
 if settings.DEBUG:

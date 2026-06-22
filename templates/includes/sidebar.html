@@ -38,9 +38,9 @@
             <i class="fa-solid fa-clock-rotate-left"></i>
             <span>Monitoreo HOS</span>
         </a>
-        <a href="#" class="nav-item" style="margin-top: auto;">
+        <a href="{% url 'data_ingestion:config_dashboard' %}" class="nav-item {% if 'configuracion' in request.path %}active{% endif %}" style="margin-top: auto;">
             <i class="fa-solid fa-gear"></i>
-            <span>Configuración</span>
+            <span>Configuración (ETL)</span>
         </a>
     </nav>
 </aside>

@@ -1,4 +1,11 @@
 import os
+import sys
+import io
+
+# Forzar salida a UTF-8 para evitar problemas en terminales de Windows
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 import time
 import json
 import random
@@ -139,7 +146,7 @@ def main():
     parser.add_argument("--escenario", type=str, help="Forzar escenario específico")
     args = parser.parse_args()
 
-    print("🚀 Iniciando Simulador IoT PIN Platform...")
+    print("Iniciando Simulador IoT PIN Platform...")
     print(f"Modo: {args.modo} | Tractomulas: {args.tractomulas} | Intervalo: 30s")
     print("-" * 50)
 
@@ -164,7 +171,7 @@ def main():
             time.sleep(30) # Espera 30 segundos reales
             
     except KeyboardInterrupt:
-        print("\n🛑 Simulador detenido por el usuario.")
+        print("\nSimulador detenido por el usuario.")
 
 if __name__ == "__main__":
     main()
