@@ -1,21 +1,12 @@
 from django.contrib import admin
-from .models import DatasetUpload
-from .etl import process_uploaded_dataset
+from .models import DataSource, ETLJob
 
-@admin.register(DatasetUpload)
-class DatasetUploadAdmin(admin.ModelAdmin):
-    list_display = ('title', 'dataset_type', 'status', 'uploaded_at', 'processed_at')
-    list_filter = ('dataset_type', 'status', 'uploaded_at')
-    search_fields = ('title', 'processing_logs')
-    readonly_fields = ('uploaded_at', 'processed_at', 'processing_logs')
-    
-    actions = ['process_dataset']
+@admin.register(DataSource)
+class DataSourceAdmin(admin.ModelAdmin):
+    list_display = ('name', 'file_type', 'last_load')
+    search_fields = ('name',)
 
-    @admin.action(description='Ejecutar Procesamiento ETL (Clase 8)')
-    def process_dataset(self, request, queryset):
-        for dataset in queryset:
-            # En producción esto debería ir a Celery. 
-            # Por ahora lo ejecutamos síncronamente para la maqueta.
-            process_uploaded_dataset(dataset)
-            
-        self.message_user(request, f"Se procesaron {queryset.count()} datasets correctamente.")
+@admin.register(ETLJob)
+class ETLJobAdmin(admin.ModelAdmin):
+    list_display = ('dataset', 'status', 'records_processed', 'started_at', 'completed_at')
+    list_filter = ('status', 'dataset')

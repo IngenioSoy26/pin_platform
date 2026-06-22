@@ -2,7 +2,7 @@ import json
 from django.shortcuts import render
 from django.http import JsonResponse
 from apps.core.models import TruckStop, WIMStation, TireShop, AlternativeFuelStation, RecyclingFacility
-from apps.data_ingestion.models import DatasetUpload
+from apps.data_ingestion.models import DataSource
 from apps.devices.models import Truck
 from apps.hos_monitoring.models import HOSAlert
 from apps.weight_monitoring.models import WeightInspection
@@ -205,10 +205,12 @@ def api_routes(request):
     """
     Retorna la URL del archivo GeoJSON más reciente del Sistema Nacional de Autopistas (NHS).
     """
-    dataset = DatasetUpload.objects.filter(dataset_type='ROUTES_NHS', status='COMPLETED').order_by('-uploaded_at').first()
+    dataset = DataSource.objects.filter(file_type='GEOJSON').order_by('-last_load').first()
     
-    if dataset and dataset.file:
-        return JsonResponse({'url': dataset.file.url})
+    if dataset and dataset.file_path:
+        # En una arquitectura real, esto retornaría la URL de S3 o media.
+        # Por ahora devolvemos None para que el frontend maneje la capa si es necesario.
+        return JsonResponse({'url': None})
     return JsonResponse({'url': None}, status=404)
 
 def map_view(request):

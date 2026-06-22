@@ -3,25 +3,28 @@ import traceback
 import os
 from django.utils import timezone
 from apps.core.models import TruckStop, WIMStation, Amenity, RecyclingFacility, TransportationStatistic, TireShop, AlternativeFuelStation, CarrierCompany, WeightEnforcementStatistic
+from .models import DataSource, ETLJob
 
-def process_uploaded_dataset(dataset_upload):
+def run_etl_job(etl_job):
     """
     Motor ETL principal. Lee el archivo crudo y lo mapea a los modelos de Django.
-    Soporta CSV y detecta automáticamente las variaciones de columnas de diferentes proveedores.
     """
-    dataset_upload.status = 'PROCESSING'
-    dataset_upload.processing_logs = "Iniciando procesamiento ETL nativo...\n"
-    dataset_upload.save()
+    etl_job.status = 'RUNNING'
+    etl_job.error_log = "Iniciando procesamiento ETL nativo...\n"
+    etl_job.save()
 
     try:
-        file_path = dataset_upload.file.path
+        file_path = etl_job.dataset.file_path
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"El archivo {file_path} no existe.")
+            
         ext = os.path.splitext(file_path)[1].lower()
         
         # Procesamiento CSV
         if ext == '.csv':
             with open(file_path, mode='r', encoding='utf-8-sig', errors='replace') as f:
-                reader = csv.DictReader(f)
-                _route_processing(reader, dataset_upload)
+                reader = list(csv.DictReader(f))
+                _route_processing(reader, etl_job)
                 
         # Procesamiento Excel (xlsx)
         elif ext in ['.xlsx', '.xls']:
@@ -29,7 +32,6 @@ def process_uploaded_dataset(dataset_upload):
             wb = openpyxl.load_workbook(file_path, data_only=True)
             sheet = wb.active
 
-            # Buscar dinámicamente la fila que contiene las verdaderas cabeceras (ignorando disclaimers)
             header_row_idx = 1
             headers = []
             max_headers = 0
@@ -38,19 +40,17 @@ def process_uploaded_dataset(dataset_upload):
                 current_headers = [str(cell.value).strip() if cell.value else f"Empty_{j}" for j, cell in enumerate(row)]
                 valid_headers_count = sum(1 for h in current_headers if not h.startswith("Empty_"))
 
-                # Si esta fila tiene más columnas válidas que las anteriores, asumimos que es la cabecera
                 if valid_headers_count > max_headers and valid_headers_count > 3:
                     max_headers = valid_headers_count
                     headers = current_headers
                     header_row_idx = i
 
-            # Convertir Excel a una lista de diccionarios empezando desde la fila siguiente a las cabeceras
             reader = []
             for row in sheet.iter_rows(min_row=header_row_idx + 1):
                 row_data = {headers[i]: cell.value for i, cell in enumerate(row) if i < len(headers)}
                 reader.append(row_data)
 
-            _route_processing(reader, dataset_upload)
+            _route_processing(reader, etl_job)
             
         # Procesamiento GeoJSON
         elif ext == '.geojson':
@@ -58,58 +58,60 @@ def process_uploaded_dataset(dataset_upload):
             with open(file_path, mode='r', encoding='utf-8') as f:
                 geojson_data = json.load(f)
                 
-            # Los GeoJSON tienen la data en la lista "features", donde cada feature tiene "properties"
             reader = []
             if 'features' in geojson_data:
                 for feature in geojson_data['features']:
                     props = feature.get('properties', {})
-                    # Intentar extraer centroide si son puntos
                     geom = feature.get('geometry', {})
                     if geom and geom.get('type') == 'Point':
                         coords = geom.get('coordinates', [])
                         if len(coords) >= 2:
-                            props['lon'] = coords[0] # GeoJSON es [lon, lat]
+                            props['lon'] = coords[0]
                             props['lat'] = coords[1]
                     reader.append(props)
                     
-            _route_processing(reader, dataset_upload)
+            _route_processing(reader, etl_job)
 
         else:
             raise ValueError(f"Formato no soportado para ETL nativo: {ext}")
                 
-        dataset_upload.status = 'COMPLETED'
-        dataset_upload.processed_at = timezone.now()
-        dataset_upload.processing_logs += "Procesamiento finalizado con éxito.\n"
+        etl_job.status = 'COMPLETED'
+        etl_job.completed_at = timezone.now()
+        etl_job.error_log += "Procesamiento finalizado con éxito.\n"
+        
+        etl_job.dataset.last_load = timezone.now()
+        etl_job.dataset.save()
         
     except Exception as e:
-        dataset_upload.status = 'FAILED'
-        dataset_upload.processing_logs += f"\nERROR CRÍTICO:\n{str(e)}\n{traceback.format_exc()}"
+        etl_job.status = 'FAILED'
+        etl_job.error_log += f"\nERROR CRÍTICO:\n{str(e)}\n{traceback.format_exc()}"
     
-    dataset_upload.save()
+    etl_job.save()
 
-def _route_processing(reader, dataset_upload):
-    if dataset_upload.dataset_type == 'TRUCK_STOPS':
-        _process_truck_stops(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'WIM_STATIONS':
-        _process_wim_stations(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'RECYCLING':
-        _process_recycling(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'CARRIERS':
-        _process_carriers(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'STATS':
-        _process_stats(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'TIRE_SHOPS':
-        _process_tire_shops(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'ALT_FUEL':
-        _process_alt_fuel(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'ENFORCEMENT':
-        _process_enforcement(reader, dataset_upload)
-    elif dataset_upload.dataset_type == 'ROUTES_NHS':
-        dataset_upload.processing_logs += f"Se detectaron y validaron rutas NHS en formato GeoJSON. Estas se utilizarán nativamente en la Fase 4 para renderizado en los mapas (Leaflet/Mapbox).\n"
+def _route_processing(reader, etl_job):
+    name_lower = etl_job.dataset.name.lower()
+    if 'truck stop' in name_lower or 'travel center' in name_lower or 'pilot' in name_lower or 'loves' in name_lower:
+        _process_truck_stops(reader, etl_job)
+    elif 'wim' in name_lower:
+        _process_wim_stations(reader, etl_job)
+    elif 'recycling' in name_lower or 'epa' in name_lower:
+        _process_recycling(reader, etl_job)
+    elif 'carrier' in name_lower or 'company' in name_lower:
+        _process_carriers(reader, etl_job)
+    elif 'stat' in name_lower:
+        _process_stats(reader, etl_job)
+    elif 'tire' in name_lower:
+        _process_tire_shops(reader, etl_job)
+    elif 'fuel' in name_lower:
+        _process_alt_fuel(reader, etl_job)
+    elif 'enforcement' in name_lower or 'size' in name_lower:
+        _process_enforcement(reader, etl_job)
+    elif 'routes' in name_lower or 'nhs' in name_lower:
+        etl_job.error_log += f"Se detectaron y validaron rutas NHS en formato GeoJSON.\n"
     else:
-        dataset_upload.processing_logs += f"Lógica ETL para {dataset_upload.dataset_type} en desarrollo.\n"
+        etl_job.error_log += f"Lógica ETL para {etl_job.dataset.name} en desarrollo.\n"
 
-def _process_truck_stops(reader, dataset_upload):
+def _process_truck_stops(reader, etl_job):
     """
     Procesa Truck Stops.
     Maneja polimorfismo de columnas (NTAD, Locmaster, Love's, Pilot).
@@ -126,7 +128,7 @@ def _process_truck_stops(reader, dataset_upload):
             name_lower = str(name).lower()
             if 'pilot' in name_lower or 'flying j' in name_lower:
                 operator = 'Pilot Flying J'
-            elif 'love' in name_lower or 'love' in dataset_upload.file.name.lower():
+            elif 'love' in name_lower or 'love' in etl_job.dataset.file_path.lower():
                 operator = "Love's Travel Stops"
             elif 'ta' in name_lower or 'travelcenters' in name_lower or 'petro' in name_lower:
                 operator = 'TA / Petro'
@@ -290,9 +292,9 @@ def _process_truck_stops(reader, dataset_upload):
         if created:
             created_count += 1
             
-    dataset_upload.processing_logs += f"Se procesaron e importaron {created_count} Truck Stops (detectando automáticamente las columnas).\n"
+    etl_job.error_log += f"Se procesaron e importaron {created_count} Truck Stops (detectando automáticamente las columnas).\n"
 
-def _process_wim_stations(reader, dataset_upload):
+def _process_wim_stations(reader, etl_job):
     """
     Procesa estaciones WIM y datos de enforcement.
     FILTRO ESTRICTO: Solo guardamos datos relevantes para "Vehículos Clase 8" (FHWA Class 8).
@@ -333,11 +335,11 @@ def _process_wim_stations(reader, dataset_upload):
         wim.amenities.add(wim_amenity)
         count += 1
 
-    dataset_upload.processing_logs += f"Se procesaron {count} estaciones WIM para Vehículos Clase 8.\n"
+    etl_job.error_log += f"Se procesaron {count} estaciones WIM para Vehículos Clase 8.\n"
     if filtered_count > 0:
-        dataset_upload.processing_logs += f"Se descartaron {filtered_count} registros por no ser Clase 8.\n"
+        etl_job.error_log += f"Se descartaron {filtered_count} registros por no ser Clase 8.\n"
 
-def _process_recycling(reader, dataset_upload):
+def _process_recycling(reader, etl_job):
     created_count = 0
     for row in reader:
         # Coordenadas polimórficas (Priorizar Latitude/Longitude sobre y/x)
@@ -356,7 +358,7 @@ def _process_recycling(reader, dataset_upload):
             
         try:
             # Lógica para EPA_Disaster_Debris_Recovery_Data
-            is_epa_file = True if 'EPA' in dataset_upload.file.name else False
+            is_epa_file = True if 'EPA' in etl_job.dataset.file_path else False
             
             if is_epa_file:
                 tires_flag = str(row.get('Tires', '')).strip()
@@ -444,9 +446,9 @@ def _process_recycling(reader, dataset_upload):
             except Exception as e:
                 pass
         
-    dataset_upload.processing_logs += f"Se importaron {created_count} plantas de reciclaje de llantas.\n"
+    etl_job.error_log += f"Se importaron {created_count} plantas de reciclaje de llantas.\n"
 
-def _process_carriers(reader, dataset_upload):
+def _process_carriers(reader, etl_job):
     created_count = 0
     batch_size = 10000
     batch = []
@@ -486,9 +488,9 @@ def _process_carriers(reader, dataset_upload):
         )
         created_count += len(batch)
         
-    dataset_upload.processing_logs += f"Se importaron {created_count} empresas transportistas (Carriers) usando procesamiento masivo por lotes.\n"
+    etl_job.error_log += f"Se importaron {created_count} empresas transportistas (Carriers) usando procesamiento masivo por lotes.\n"
 
-def _process_stats(reader, dataset_upload):
+def _process_stats(reader, etl_job):
     import datetime
     created_count = 0
     for row in reader:
@@ -531,9 +533,9 @@ def _process_stats(reader, dataset_upload):
         except Exception:
             continue
 
-    dataset_upload.processing_logs += f"Se importaron {created_count} meses de estadísticas de transporte relevantes para Clase 8.\n"
+    etl_job.error_log += f"Se importaron {created_count} meses de estadísticas de transporte relevantes para Clase 8.\n"
 
-def _process_enforcement(reader, dataset_upload):
+def _process_enforcement(reader, etl_job):
     created_count = 0
     for row in reader:
         year = row.get('year')
@@ -568,9 +570,9 @@ def _process_enforcement(reader, dataset_upload):
         except (ValueError, TypeError):
             continue
             
-    dataset_upload.processing_logs += f"Se importaron {created_count} registros anuales de control y pesaje por Estado.\n"
+    etl_job.error_log += f"Se importaron {created_count} registros anuales de control y pesaje por Estado.\n"
 
-def _process_tire_shops(reader, dataset_upload):
+def _process_tire_shops(reader, etl_job):
     created_count = 0
     for row in reader:
         # Extraer latitud y longitud, el CSV tiene las columnas 'lat' y 'lon'
@@ -609,9 +611,9 @@ def _process_tire_shops(reader, dataset_upload):
             }
         )
         created_count += 1
-    dataset_upload.processing_logs += f"Se importaron {created_count} talleres de llantas.\n"
+    etl_job.error_log += f"Se importaron {created_count} talleres de llantas.\n"
 
-def _process_alt_fuel(reader, dataset_upload):
+def _process_alt_fuel(reader, etl_job):
     created_count = 0
     # Como son muchos registros, usaremos una lista para hacer bulk_create si es posible,
     # pero update_or_create es más seguro contra duplicados.
@@ -678,4 +680,4 @@ def _process_alt_fuel(reader, dataset_upload):
             station.amenities.add(*amenities_to_add)
 
         created_count += 1
-    dataset_upload.processing_logs += f"Se importaron {created_count} estaciones de combustible alternativo (Exclusivas para Tractomulas / HD).\n"
+    etl_job.error_log += f"Se importaron {created_count} estaciones de combustible alternativo (Exclusivas para Tractomulas / HD).\n"
