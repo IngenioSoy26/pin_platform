@@ -3,22 +3,206 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="color: var(--text-color); font-weight: 600; margin: 0;">
-            <i class="fa-solid fa-chart-line text-info"></i> Modelos Predictivos
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">        
+        <h2 style="color: var(--text-primary); font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px;">     
+            <i class="fa-solid fa-brain text-info"></i> Modelos Predictivos e IA
         </h2>
+        <div class="d-flex gap-3">
+            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; padding: 0.5rem 1rem; font-size: 0.9rem; border: 1px solid rgba(59, 130, 246, 0.3);">
+                <i class="fa-solid fa-microchip me-2"></i>Motor ML Activo
+            </span>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="map-controls-panel p-5 text-center" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <i class="fa-solid fa-person-digging mb-4" style="font-size: 4rem; color: #3b82f6; opacity: 0.8;"></i>
-                <h3 style="color: var(--text-color);">Módulo en Construcción</h3>
-                <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto;">
-                    Esta vista formará parte del panel interactivo con gráficos Plotly y mapas Leaflet.
-                </p>
+    <!-- Layout de KPIs Superiores -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; width: 100%;">
+        <!-- KPI 1 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-bullseye text-success"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Precisión del Modelo</span>
+                    <span class="kpi-value text-success" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.model_accuracy }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 2 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-car-burst text-danger"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Fallas Predichas (7 Días)</span>
+                    <span class="kpi-value text-danger" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.predicted_failures }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 3 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-clock-rotate-left text-primary"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Downtime Prevenido</span>
+                    <span class="kpi-value text-primary" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.prevented_downtime }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 4 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-sack-dollar text-warning"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Ahorro Estimado (ROI)</span>
+                    <span class="kpi-value text-warning" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.roi_estimation }}</span>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Main Content Grid -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <!-- Left Column: Gráficos Predictivos -->
+        <div style="flex: 2; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-chart-area me-2 text-info"></i>Proyección de Riesgo de Falla (Próximos 10 Días)</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Comparativa del índice de riesgo predictivo entre vehículos con y sin mantenimiento programado.</p>
+                <div id="riskForecastChart" style="width: 100%; height: 300px;"></div>
+            </div>
+
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-braille me-2 text-success"></i>Clustering: Desgaste vs. Millas Recorridas</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Análisis de dispersión de la flota para identificar anomalías (vehículos que se desgastan anormalmente rápido).</p>
+                <div id="wearScatterChart" style="width: 100%; height: 300px;"></div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Predicciones Accionables -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="glass-card p-4 h-100">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-bolt text-warning me-2"></i>Predicciones de Falla (Corto Plazo)</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">El modelo de Machine Learning ha detectado patrones anómalos que preceden a fallas mecánicas críticas.</p>
+                
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover glass-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="color: var(--text-muted);">Unidad & Componente</th>
+                                <th style="color: var(--text-muted);">Prob.</th>
+                                <th style="color: var(--text-muted);">ETA de Falla</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in upcoming_failures %}
+                            <tr>
+                                <td>
+                                    <div style="color: var(--text-primary); font-weight: 500;"><i class="fa-solid fa-truck text-secondary me-2"></i>{{ item.unit }}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ item.component }}</div>
+                                </td>
+                                <td>
+                                    {% if item.probability > '85%' %}
+                                        <span class="text-danger fw-bold">{{ item.probability }}</span>
+                                    {% else %}
+                                        <span class="text-warning fw-bold">{{ item.probability }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">{{ item.eta }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" style="border-top: none; padding-top: 0; padding-bottom: 1rem;">
+                                    <small style="color: #f59e0b;"><i class="fa-solid fa-triangle-exclamation me-1"></i> Impacto: {{ item.impact }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 p-3 rounded" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <h6 style="color: #3b82f6; margin-bottom: 5px;"><i class="fa-solid fa-network-wired me-2"></i>Sobre el Modelo</h6>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">PIN utiliza algoritmos de Random Forest y Redes Neuronales LSTM (Long Short-Term Memory) entrenados con más de 5 millones de puntos de datos telemáticos históricos para predecir fallas antes de que ocurran.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
 </div>
+
+<!-- Load Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- Inject Data -->
+{{ forecast_days|json_script:"forecast-days" }}
+{{ risk_fleet_a|json_script:"risk-a" }}
+{{ risk_fleet_b|json_script:"risk-b" }}
+{{ tire_scatter_json|json_script:"scatter-data" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    const commonLayout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#94a3b8' },
+        margin: { t: 20, r: 20, b: 40, l: 40 }
+    };
+
+    // 1. Risk Forecast Chart
+    const fDays = JSON.parse(document.getElementById('forecast-days').textContent);
+    const riskA = JSON.parse(document.getElementById('risk-a').textContent);
+    const riskB = JSON.parse(document.getElementById('risk-b').textContent);
+
+    Plotly.newPlot('riskForecastChart', [
+        { x: fDays, y: riskA, type: 'scatter', mode: 'lines+markers', name: 'Sin Mantenimiento', line: { color: '#ef4444', width: 3 } },
+        { x: fDays, y: riskB, type: 'scatter', mode: 'lines+markers', name: 'Mantenimiento Preventivo', line: { color: '#10b981', width: 3 } }
+    ], {
+        ...commonLayout,
+        legend: { orientation: 'h', y: -0.2 },
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.05)', title: 'Índice de Riesgo (%)' }
+    }, {displayModeBar: false});
+
+    // 2. Wear Scatter Chart
+    const scatterData = JSON.parse(document.getElementById('scatter-data').textContent);
+    const xData = scatterData.map(d => d.x);
+    const yData = scatterData.map(d => d.y);
+
+    Plotly.newPlot('wearScatterChart', [{
+        x: xData,
+        y: yData,
+        mode: 'markers',
+        type: 'scatter',
+        marker: {
+            size: 10,
+            color: yData, // Color based on depth
+            colorscale: [
+                [0, '#ef4444'], // Red for low depth
+                [0.5, '#f59e0b'], // Yellow for medium
+                [1, '#10b981'] // Green for high
+            ],
+            opacity: 0.7,
+            line: { width: 1, color: 'rgba(255,255,255,0.2)' }
+        }
+    }], {
+        ...commonLayout,
+        xaxis: { title: 'Millas Recorridas', showgrid: true, gridcolor: 'rgba(255,255,255,0.05)' },
+        yaxis: { title: 'Profundidad (x/32")', showgrid: true, gridcolor: 'rgba(255,255,255,0.05)' }
+    }, {displayModeBar: false});
+
+});
+</script>
 {% endblock %}

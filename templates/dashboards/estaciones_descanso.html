@@ -3,22 +3,250 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="color: var(--text-color); font-weight: 600; margin: 0;">
-            <i class="fa-solid fa-chart-line text-info"></i> Estaciones Descanso
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">        
+        <h2 style="color: var(--text-primary); font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px;">     
+            <i class="fa-solid fa-bed text-info"></i> Red de Descanso & Estaciones
         </h2>
+        <div class="d-flex gap-3">
+            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.5rem 1rem; font-size: 0.9rem; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i class="fa-solid fa-satellite-dish me-2"></i>Live Parking Sync
+            </span>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="map-controls-panel p-5 text-center" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <i class="fa-solid fa-person-digging mb-4" style="font-size: 4rem; color: #3b82f6; opacity: 0.8;"></i>
-                <h3 style="color: var(--text-color);">Módulo en Construcción</h3>
-                <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto;">
-                    Esta vista formará parte del panel interactivo con gráficos Plotly y mapas Leaflet.
-                </p>
+    <!-- Layout de KPIs Superiores (Flexbox) -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; width: 100%;">
+        <!-- KPI 1 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-gas-pump text-primary"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Estaciones Monitoreadas</span>
+                    <span class="kpi-value text-primary" style="font-size: 1.5rem; font-weight: bold;">{{ total_stations }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 2 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-square-parking text-success"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Capacidad Total (Spots)</span>
+                    <span class="kpi-value text-success" style="font-size: 1.5rem; font-weight: bold;">{{ total_parking_spots }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 3 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-truck-ramp-box text-warning"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Disponibilidad Actual</span>
+                    <span class="kpi-value text-warning" style="font-size: 1.5rem; font-weight: bold;">{{ available_spots }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 4 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-chart-pie text-danger"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Ocupación Global</span>
+                    <span class="kpi-value text-danger" style="font-size: 1.5rem; font-weight: bold;">{{ occupancy_rate }}%</span>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Main Content -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <!-- Left Column: Map and Table -->
+        <div style="flex: 2; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Map Container -->
+            <div class="glass-card p-0" style="height: 450px; position: relative; overflow: hidden;">
+                <div style="position: absolute; top: 1rem; left: 1rem; z-index: 1000; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+                    <h5 style="margin:0; font-size: 1rem; color: var(--text-primary);"><i class="fa-solid fa-map-location-dot me-2 text-info"></i>Disponibilidad Geoespacial</h5>
+                </div>
+                <div id="stationsMap" style="width: 100%; height: 100%; z-index: 1; background: #0f172a;"></div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-list-check me-2 text-primary"></i>Top Estaciones con Disponibilidad (Ruta Principal)</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover glass-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="color: var(--text-muted);">Estación</th>
+                                <th style="color: var(--text-muted);">Ubicación</th>
+                                <th style="color: var(--text-muted);">Spots Totales</th>
+                                <th style="color: var(--text-muted);">Disponibles</th>
+                                <th style="color: var(--text-muted);">Amenities Clave</th>
+                                <th style="color: var(--text-muted);">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for station in top_stations %}
+                            <tr>
+                                <td style="color: var(--text-primary); font-weight: 500;">
+                                    <i class="fa-solid fa-building text-info me-2"></i>{{ station.name }}
+                                </td>
+                                <td style="color: var(--text-muted);">{{ station.location }}</td>
+                                <td style="color: var(--text-primary);">{{ station.spots }}</td>
+                                <td>
+                                    {% if station.available > 20 %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">{{ station.available }} Libres</span>
+                                    {% elif station.available > 0 %}
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">{{ station.available }} Libres</span>
+                                    {% else %}
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">Lleno</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if station.showers %}<i class="fa-solid fa-shower text-primary me-2" title="Duchas"></i>{% endif %}
+                                    {% if station.mechanic %}<i class="fa-solid fa-wrench text-warning" title="Mecánico"></i>{% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">Enrutar <i class="fa-solid fa-arrow-right ms-1"></i></button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Charts -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Chart 1: Amenities -->
+            <div class="glass-card p-4" style="flex: 1;">
+                <h5 class="mb-4" style="color: var(--text-primary); font-size: 1rem;"><i class="fa-solid fa-star text-warning me-2"></i>Cobertura de Amenities (%)</h5>
+                <div id="amenitiesChart" style="width: 100%; height: 250px;"></div>
+            </div>
+
+            <!-- Chart 2: Occupancy Trend -->
+            <div class="glass-card p-4" style="flex: 1;">
+                <h5 class="mb-4" style="color: var(--text-primary); font-size: 1rem;"><i class="fa-solid fa-clock-rotate-left text-success me-2"></i>Tendencia de Ocupación (24h)</h5>
+                <div id="occupancyChart" style="width: 100%; height: 250px;"></div>
+            </div>
+
+        </div>
+
+    </div>
 </div>
+
+<!-- Load Leaflet & Plotly -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- Inject Data -->
+{{ top_stations|json_script:"stations-data" }}
+{{ amenities_labels|json_script:"amenities-labels" }}
+{{ amenities_values|json_script:"amenities-values" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Initialize Map
+    var map = L.map('stationsMap', {
+        zoomControl: false
+    }).setView([38.5, -96.0], 4);
+    
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CartoDB',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(map);
+
+    // Load stations from JSON
+    const stationsData = JSON.parse(document.getElementById('stations-data').textContent);
+    
+    // Add markers
+    stationsData.forEach(st => {
+        let color = st.available > 20 ? '#10b981' : (st.available > 0 ? '#f59e0b' : '#ef4444');
+        let iconHtml = `
+            <div style="background-color: rgba(15,23,42,0.8); border: 2px solid ${color}; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; box-shadow: 0 0 15px ${color};">
+                <i class="fa-solid fa-square-parking" style="color: ${color}; font-size: 14px;"></i>
+            </div>
+        `;
+        let icon = L.divIcon({ html: iconHtml, className: 'custom-station-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
+        
+        L.marker([st.lat, st.lon], {icon: icon})
+            .bindPopup(`
+                <div style="text-align: center; color: #333; padding: 5px;">
+                    <strong style="display: block; margin-bottom: 5px; font-size: 1.1em;">${st.name}</strong>
+                    <span style="font-size: 1.2em; font-weight: bold; color: ${color};">${st.available} Libres</span><br>
+                    <small>Total: ${st.spots} spots</small>
+                </div>
+            `)
+            .addTo(map);
+    });
+
+    // Fix map sizing
+    setTimeout(() => { map.invalidateSize(); }, 500);
+
+    // 2. Initialize Charts
+    const commonLayout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#94a3b8' },
+        margin: { t: 10, r: 10, b: 30, l: 30 },
+        showlegend: false
+    };
+
+    // Amenities Bar Chart
+    const a_labels = JSON.parse(document.getElementById('amenities-labels').textContent);
+    const a_values = JSON.parse(document.getElementById('amenities-values').textContent);
+
+    Plotly.newPlot('amenitiesChart', [{
+        x: a_values,
+        y: a_labels,
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+            color: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'],
+            opacity: 0.8
+        }
+    }], {
+        ...commonLayout,
+        xaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.05)', range: [0, 100] },
+        yaxis: { showgrid: false }
+    }, {displayModeBar: false});
+
+    // Occupancy Trend Area Chart (Simulated Data)
+    const hours = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+    const occupancy = [40, 35, 70, 85, 95, 100, 60]; // Peaks at night
+
+    Plotly.newPlot('occupancyChart', [{
+        x: hours,
+        y: occupancy,
+        type: 'scatter',
+        fill: 'tozeroy',
+        mode: 'lines+markers',
+        line: { color: '#ef4444', width: 3 },
+        marker: { size: 6 },
+        fillcolor: 'rgba(239, 68, 68, 0.2)'
+    }], {
+        ...commonLayout,
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.05)', range: [0, 110] }
+    }, {displayModeBar: false});
+
+});
+</script>
 {% endblock %}

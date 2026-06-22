@@ -3,22 +3,219 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="color: var(--text-color); font-weight: 600; margin: 0;">
-            <i class="fa-solid fa-chart-line text-info"></i> Combustible Reciclaje
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">        
+        <h2 style="color: var(--text-primary); font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px;">     
+            <i class="fa-solid fa-leaf text-success"></i> Sostenibilidad & Economía Circular (EPA)
         </h2>
+        <div class="d-flex gap-3">
+            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 0.5rem 1rem; font-size: 0.9rem; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i class="fa-solid fa-certificate me-2"></i>Certificación Verde Activa
+            </span>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="map-controls-panel p-5 text-center" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <i class="fa-solid fa-person-digging mb-4" style="font-size: 4rem; color: #3b82f6; opacity: 0.8;"></i>
-                <h3 style="color: var(--text-color);">Módulo en Construcción</h3>
-                <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto;">
-                    Esta vista formará parte del panel interactivo con gráficos Plotly y mapas Leaflet.
-                </p>
+    <!-- Layout de KPIs Superiores (Flexbox Puro) -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; width: 100%;">
+        <!-- KPI 1: CO2 -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-cloud text-success"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">CO2 Mitigado (Ton)</span>
+                    <span class="kpi-value text-success" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.co2_saved }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 2: Llantas Recicladas -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-recycle text-primary"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Llantas Recicladas</span>
+                    <span class="kpi-value text-primary" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.tires_recycled }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 3: MPG Promedio -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-gas-pump text-warning"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Eficiencia Combustible (MPG)</span>
+                    <span class="kpi-value text-warning" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.fuel_efficiency }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 4: Green Score -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-award" style="color: #8b5cf6;"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Green Score (0-100)</span>
+                    <span class="kpi-value" style="color: #8b5cf6; font-size: 1.5rem; font-weight: bold;">{{ kpis.green_score }}</span>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Main Content Grid -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <!-- Left Column: Gráficos -->
+        <div style="flex: 2; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Gráfico de Tendencia de Consumo -->
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-chart-line me-2 text-info"></i>Impacto PIN: Reducción de Consumo de Diésel</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Al mantener la presión ideal de las llantas, se reduce la resistencia a la rodadura, disminuyendo el consumo de combustible (Galones).</p>
+                <div id="fuelTrendChart" style="width: 100%; height: 300px;"></div>
+            </div>
+
+            <!-- Gráfico de Destino de Llantas -->
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-ring me-2 text-success"></i>Economía Circular: Destino Final de Neumáticos</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Porcentaje de llantas retiradas a tiempo que logran ser salvadas para reencauche (Retread) en lugar de ir al vertedero.</p>
+                <div id="tiresDestinyChart" style="width: 100%; height: 250px;"></div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Auditoría EPA -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="glass-card p-4 h-100">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-clipboard-check me-2 text-warning"></i>Auditoría de Emisiones (Top Riesgos)</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">Vehículos con eficiencia MPG por debajo del estándar, generando exceso de huella de carbono.</p>
+                
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover glass-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="color: var(--text-muted);">Unidad</th>
+                                <th style="color: var(--text-muted);">MPG</th>
+                                <th style="color: var(--text-muted);">Exceso CO2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in epa_audit %}
+                            <tr>
+                                <td style="color: var(--text-primary); font-weight: 500;">
+                                    <i class="fa-solid fa-truck text-secondary me-2"></i>{{ item.unit }}
+                                </td>
+                                <td>
+                                    {% if item.status == 'Crítico' %}
+                                        <span class="text-danger fw-bold">{{ item.mpg }}</span>
+                                    {% elif item.status == 'Alerta' %}
+                                        <span class="text-warning fw-bold">{{ item.mpg }}</span>
+                                    {% else %}
+                                        <span class="text-success fw-bold">{{ item.mpg }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.status == 'Crítico' %}
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444;">{{ item.co2 }}</span>
+                                    {% elif item.status == 'Alerta' %}
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b;">{{ item.co2 }}</span>
+                                    {% else %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">{{ item.co2 }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if item.status != 'Óptimo' %}
+                            <tr>
+                                <td colspan="3" style="border-top: none; padding-top: 0; padding-bottom: 1rem;">
+                                    <small style="color: #ef4444;"><i class="fa-solid fa-arrow-turn-up fa-rotate-90 me-1"></i> Acción: {{ item.action }}</small>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 p-3 rounded" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                    <h6 style="color: #10b981; margin-bottom: 5px;"><i class="fa-solid fa-lightbulb me-2"></i>Dato de Valor (PIN)</h6>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Retirar una llanta antes de que llegue a 2/32" de desgaste garantiza que su carcasa (casing) pueda ser reencauchada, ahorrando hasta 15 galones de petróleo por llanta en su proceso de fabricación.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
 </div>
+
+<!-- Load Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- Inject Data -->
+{{ fuel_trend_months|json_script:"fuel-months" }}
+{{ fuel_consumption|json_script:"fuel-consumption" }}
+{{ tires_destiny_labels|json_script:"tires-labels" }}
+{{ tires_destiny_values|json_script:"tires-values" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    const commonLayout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#94a3b8' },
+        margin: { t: 20, r: 20, b: 40, l: 50 },
+        showlegend: false
+    };
+
+    // 1. Fuel Trend Chart (Line Chart)
+    const months = JSON.parse(document.getElementById('fuel-months').textContent);
+    const consumption = JSON.parse(document.getElementById('fuel-consumption').textContent);
+
+    Plotly.newPlot('fuelTrendChart', [{
+        x: months,
+        y: consumption,
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#3b82f6', width: 4, shape: 'spline' },
+        marker: { size: 8, color: '#0ea5e9' },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(59, 130, 246, 0.1)'
+    }], {
+        ...commonLayout,
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.05)', title: 'Galones Consumidos' }
+    }, {displayModeBar: false});
+
+    // 2. Tires Destiny Chart (Horizontal Bar)
+    const t_labels = JSON.parse(document.getElementById('tires-labels').textContent);
+    const t_values = JSON.parse(document.getElementById('tires-values').textContent);
+
+    Plotly.newPlot('tiresDestinyChart', [{
+        x: t_values,
+        y: t_labels,
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+            color: ['#10b981', '#f59e0b', '#ef4444'], // Verde para reencauche, rojo para vertedero
+            opacity: 0.8,
+            line: { width: 0 }
+        },
+        text: t_values.map(v => v + '%'),
+        textposition: 'auto',
+        hoverinfo: 'none'
+    }], {
+        ...commonLayout,
+        margin: { t: 10, r: 10, b: 30, l: 150 }, // Margen izquierdo más grande para las etiquetas largas
+        xaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.05)', range: [0, 100] },
+        yaxis: { showgrid: false, autorange: 'reversed' }
+    }, {displayModeBar: false});
+
+});
+</script>
 {% endblock %}

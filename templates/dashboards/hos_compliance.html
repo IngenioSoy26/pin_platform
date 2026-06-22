@@ -2,311 +2,240 @@
 {% load static %}
 
 {% block content %}
-<div class="container-fluid mt-4 master-container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="color: var(--text-color); font-weight: 700; margin: 0; font-size: 1.8rem; letter-spacing: -0.5px;">
-            <i class="fa-solid fa-user-clock text-warning me-2"></i> HOS Compliance & Auditoría de Fatiga
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">        
+        <h2 style="color: var(--text-primary); font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px;">     
+            <i class="fa-solid fa-clock-rotate-left text-warning"></i> Monitoreo HOS & Cumplimiento FMCSA
         </h2>
-        <div>
-            <a href="{% url 'dashboards:hub' %}" class="btn btn-outline-secondary" style="border-radius: 8px; font-weight: 600;">
-                <i class="fa-solid fa-arrow-left"></i> Volver al Hub
-            </a>
+        <div class="d-flex gap-3">
+            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; padding: 0.5rem 1rem; font-size: 0.9rem; border: 1px solid rgba(59, 130, 246, 0.3);">
+                <i class="fa-solid fa-satellite-dish me-2"></i>ELD Telemetry Sync
+            </span>
         </div>
     </div>
 
-    <!-- KPIs Row -->
-    <div class="row mb-4 kpi-row-override">
-        <div class="col-md-3 mb-3">
-            <div class="kpi-card total">
-                <div class="kpi-icon">
-                    <i class="fa-solid fa-users"></i>
+    <!-- Layout de KPIs Superiores (Flexbox Puro) -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; width: 100%;">
+        <!-- KPI 1: Active Drivers -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-id-card text-primary"></i>
                 </div>
-                <div class="kpi-info">
-                    <span class="kpi-label">CONDUCTORES ACTIVOS</span>
-                    <span class="kpi-value">{{ total_drivers }}</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="kpi-card info">
-                <div class="kpi-icon">
-                    <i class="fa-solid fa-shield"></i>
-                </div>
-                <div class="kpi-info">
-                    <span class="kpi-label">EN CUMPLIMIENTO (FMCSA)</span>
-                    <span class="kpi-value">{{ compliant_drivers }}</span>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Conductores Activos</span>
+                    <span class="kpi-value text-primary" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.active_drivers }}</span>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="kpi-card warning">
-                <div class="kpi-icon">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
+        <!-- KPI 2: HOS Violations -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-triangle-exclamation text-danger"></i>
                 </div>
-                <div class="kpi-info">
-                    <span class="kpi-label">INFRACCIONES ACTIVAS</span>
-                    <span class="kpi-value">{{ violation_drivers }}</span>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Infracciones FMCSA</span>
+                    <span class="kpi-value text-danger" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.hos_violations }}</span>
                 </div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="kpi-card critical">
-                <div class="kpi-icon">
-                    <i class="fa-solid fa-bell"></i>
+        <!-- KPI 3: Avg Drive Time -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-stopwatch text-warning"></i>
                 </div>
-                <div class="kpi-info">
-                    <span class="kpi-label">ALERTAS DE FATIGA</span>
-                    <span class="kpi-value">{{ active_alerts_count }}</span>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Promedio Conducción</span>
+                    <span class="kpi-value text-warning" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.avg_drive_time }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 4: Compliance Score -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-shield-halved text-success"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Cumplimiento Legal</span>
+                    <span class="kpi-value text-success" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.compliance_score }}</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="row">
-        <!-- Columna 1: Alertas HOS Recientes -->
-        <div class="col-lg-7 mb-4">
-            <div class="glass-panel" style="height: 100%;">
-                <div class="panel-header border-bottom border-secondary pb-3 mb-3 d-flex justify-content-between align-items-center">
-                    <h5 style="color: var(--text-color); margin: 0; font-weight: 600;">
-                        <i class="fa-solid fa-list-ul text-warning me-2"></i> Registro de Infracciones HOS
-                    </h5>
+    <!-- Main Content Grid -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <!-- Left Column: Gráficos -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Gráfico de Estados ELD -->
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-chart-pie me-2 text-info"></i>Estado Actual de la Flota (Duty Status)</h5>
+                <div id="dutyChart" style="width: 100%; height: 280px;"></div>
+            </div>
+
+            <!-- Gráfico de Línea de Tiempo de Fatiga -->
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-chart-column me-2 text-warning"></i>Riesgo de Fatiga por Hora</h5>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Porcentaje de probabilidad de infracción o fatiga extrema según la hora del día en curso.</p>
+                <div id="timelineChart" style="width: 100%; height: 200px;"></div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Tabla de Riesgos HOS -->
+        <div style="flex: 2; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="glass-card p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 style="color: var(--text-primary); margin: 0;"><i class="fa-solid fa-user-shield me-2 text-danger"></i>Conductores Próximos al Límite (Riesgo FMCSA)</h5>
+                    <button class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-bullhorn me-2"></i>Notificar a Todos</button>
                 </div>
                 
-                <div class="table-responsive" style="max-height: 400px;">
-                    <table class="glass-table w-100">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover glass-table mb-0">
                         <thead>
                             <tr>
-                                <th>Conductor</th>
-                                <th>Tipo de Alerta</th>
-                                <th>Severidad</th>
-                                <th>Hora</th>
+                                <th style="color: var(--text-muted);">Conductor / Unidad</th>
+                                <th style="color: var(--text-muted);">Regla Crítica</th>
+                                <th style="color: var(--text-muted);">Tiempo Restante</th>
+                                <th style="color: var(--text-muted);">Estado</th>
+                                <th style="color: var(--text-muted);">Acción Sugerida</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for alert in recent_alerts %}
+                            {% for driver in risk_drivers %}
                             <tr>
-                                <td>
+                                <td style="color: var(--text-primary); font-weight: 500;">
                                     <div class="d-flex align-items-center">
-                                        <div class="driver-avatar me-2">{{ alert.driver.first_name|first }}{{ alert.driver.last_name|first }}</div>
+                                        <div style="width: 30px; height: 30px; border-radius: 50%; background: rgba(59, 130, 246, 0.2); display: flex; justify-content: center; align-items: center; margin-right: 10px;">
+                                            <i class="fa-solid fa-user text-primary" style="font-size: 12px;"></i>
+                                        </div>
                                         <div>
-                                            <strong>{{ alert.driver.first_name }} {{ alert.driver.last_name }}</strong><br>
-                                            <small class="text-muted">{{ alert.driver.license_number }}</small>
+                                            {{ driver.name }}<br>
+                                            <small style="color: var(--text-muted);">{{ driver.truck }}</small>
                                         </div>
                                     </div>
                                 </td>
-                                <td>{{ alert.get_alert_type_display }}</td>
+                                <td style="color: #94a3b8;">{{ driver.rule }}</td>
                                 <td>
-                                    <span class="badge {% if alert.severity == 'VIOLATION' %}bg-danger{% else %}bg-warning{% endif %}">
-                                        {{ alert.get_severity_display }}
-                                    </span>
+                                    {% if driver.status == 'Crítico' %}
+                                        <span style="color: #ef4444; font-weight: bold;"><i class="fa-solid fa-hourglass-end me-1"></i> {{ driver.time_left }}</span>
+                                    {% elif driver.status == 'Alerta' %}
+                                        <span style="color: #f59e0b; font-weight: bold;"><i class="fa-solid fa-hourglass-half me-1"></i> {{ driver.time_left }}</span>
+                                    {% else %}
+                                        <span style="color: #10b981; font-weight: bold;"><i class="fa-solid fa-hourglass-start me-1"></i> {{ driver.time_left }}</span>
+                                    {% endif %}
                                 </td>
-                                <td class="text-muted">{{ alert.timestamp|timesince }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
-                                    <i class="fa-solid fa-check-circle text-success mb-2" style="font-size: 2rem;"></i><br>
-                                    No hay infracciones HOS recientes.
+                                <td>
+                                    {% if driver.status == 'Crítico' %}
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">{{ driver.status }}</span>
+                                    {% elif driver.status == 'Alerta' %}
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">{{ driver.status }}</span>
+                                    {% else %}
+                                        <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">{{ driver.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if driver.status != 'Óptimo' %}
+                                        <button class="btn btn-sm w-100" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); font-size: 0.8rem;">
+                                            <i class="fa-solid fa-message me-1"></i> {{ driver.action }}
+                                        </button>
+                                    {% else %}
+                                        <span style="color: var(--text-muted); font-size: 0.8rem;">Monitoreando...</span>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+
+                <div class="mt-4 p-3 rounded" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);">
+                    <h6 style="color: #f59e0b; margin-bottom: 5px;"><i class="fa-solid fa-scale-balanced me-2"></i>Regla FMCSA Activa</h6>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Los conductores tienen permitido un máximo de <strong>11 horas de conducción</strong> después de 10 horas consecutivas fuera de servicio. No pueden conducir más allá de la hora 14 desde que inician su turno.</p>
+                </div>
             </div>
+
         </div>
 
-        <!-- Columna 2: Gráfico de Tendencias -->
-        <div class="col-lg-5 mb-4">
-            <div class="glass-panel" style="height: 100%;">
-                <div class="panel-header border-bottom border-secondary pb-3 mb-3">
-                    <h5 style="color: var(--text-color); margin: 0; font-weight: 600;">
-                        <i class="fa-solid fa-chart-area text-info me-2"></i> Tendencia de Infracciones (7 Días)
-                    </h5>
-                </div>
-                <div id="hosTrendChart" style="width: 100%; height: 350px;"></div>
-            </div>
-        </div>
     </div>
 </div>
 
-{{ hos_trend_json|json_script:"hos-data" }}
-
-<style>
-    .master-container {
-        padding: 0 1.5rem 2rem 1.5rem;
-        width: 100%;
-        max-width: 100%;
-        overflow-x: hidden;
-    }
-
-    /* FORZAR GRID HORIZONTAL EN KPIs */
-    .kpi-row-override {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 1.5rem;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-
-    .kpi-row-override > .col-md-3 {
-        flex: 1 1 0 !important;
-        width: auto !important;
-        max-width: none !important;
-        padding: 0 !important;
-    }
-
-    /* FORZAR GRID HORIZONTAL EN PANELES INFERIORES */
-    .row {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 1.5rem;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-
-    .row > .col-lg-7 {
-        flex: 1.4 1 0 !important;
-        width: auto !important;
-        max-width: none !important;
-        padding: 0 !important;
-    }
-    
-    .row > .col-lg-5 {
-        flex: 1 1 0 !important;
-        width: auto !important;
-        max-width: none !important;
-        padding: 0 !important;
-    }
-
-    /* KPI Cards Glassmorphism */
-    .kpi-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-light);
-        border-radius: 12px;
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1.2rem;
-        box-shadow: var(--shadow-sm);
-        transition: transform 0.3s ease;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-    }
-    
-    .kpi-card:hover { transform: translateY(-5px); }
-
-    .kpi-card.total { border-left: 4px solid #64748b; }
-    .kpi-card.info { border-left: 4px solid #10b981; }
-    .kpi-card.warning { border-left: 4px solid #f59e0b; }
-    .kpi-card.critical { border-left: 4px solid #ef4444; }
-
-    .kpi-icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-    }
-
-    .total .kpi-icon { background: rgba(100, 116, 139, 0.1); color: #64748b; }
-    .info .kpi-icon { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-    .warning .kpi-icon { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-    .critical .kpi-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-
-    .kpi-info { display: flex; flex-direction: column; }
-    .kpi-label { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-value { color: var(--text-primary); font-size: 1.8rem; font-weight: 700; line-height: 1.1; margin-top: 0.2rem; }
-
-    /* Glass Panel */
-    .glass-panel {
-        background: var(--bg-surface);
-        border: 1px solid var(--border-light);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: var(--shadow-md);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
-    
-    .glass-table th, .glass-table td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-light);
-        color: var(--text-primary);
-    }
-    
-    .glass-table th {
-        color: var(--text-muted);
-        font-weight: 600;
-        background: rgba(0,0,0,0.2);
-    }
-    
-    .driver-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: rgba(59, 130, 246, 0.2);
-        color: #3b82f6;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 0.9rem;
-    }
-</style>
-
-{% endblock %}
-
-{% block extra_js %}
+<!-- Load Plotly -->
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- Inject Data -->
+{{ duty_labels|json_script:"duty-labels" }}
+{{ duty_values|json_script:"duty-values" }}
+{{ timeline_hours|json_script:"timeline-hours" }}
+{{ timeline_risk|json_script:"timeline-risk" }}
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    setTimeout(() => {
-        try {
-            // Obtener el JSON y parsearlo correctamente (usando textContent)
-            const rawData = document.getElementById('hos-data').textContent;
-            const hosData = JSON.parse(rawData);
-            
-            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-            const textColor = isDarkMode ? '#cbd5e1' : '#64748b';
-            const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    
+    const commonLayout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#94a3b8' },
+        margin: { t: 20, r: 20, b: 30, l: 30 },
+        showlegend: false
+    };
 
-            const trace = {
-                x: hosData.days,
-                y: hosData.violations,
-                type: 'bar',
-                marker: {
-                    color: '#f59e0b',
-                    opacity: 0.8
-                }
-            };
+    // 1. Duty Status Donut Chart
+    const d_labels = JSON.parse(document.getElementById('duty-labels').textContent);
+    const d_values = JSON.parse(document.getElementById('duty-values').textContent);
 
-            const layout = {
-                paper_bgcolor: 'rgba(0,0,0,0)',
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                margin: { t: 20, b: 40, l: 40, r: 20 },
-                xaxis: { 
-                    showgrid: false, 
-                    tickfont: { color: textColor },
-                    type: 'category' // Fuerza a Plotly a tratar las fechas como categorías
-                },
-                yaxis: { 
-                    gridcolor: gridColor, 
-                    tickfont: { color: textColor },
-                    dtick: 1 // Asegura que los números en el eje Y sean enteros (1, 2, 3...)
-                }
-            };
+    Plotly.newPlot('dutyChart', [{
+        values: d_values,
+        labels: d_labels,
+        type: 'pie',
+        hole: .6,
+        marker: {
+            colors: ['#10b981', '#3b82f6', '#8b5cf6', '#64748b'] // Driving (Verde), On-Duty (Azul), Sleeper (Morado), Off-Duty (Gris)
+        },
+        textinfo: 'label+percent',
+        textposition: 'outside',
+        hoverinfo: 'label+value'
+    }], {
+        ...commonLayout,
+        margin: { t: 10, r: 10, b: 10, l: 10 },
+        annotations: [{
+            font: { size: 20, color: '#f8fafc' },
+            showarrow: false,
+            text: 'ELD<br>Status',
+            x: 0.5,
+            y: 0.5
+        }]
+    }, {displayModeBar: false});
 
-            Plotly.newPlot('hosTrendChart', [trace], layout, {displayModeBar: false, responsive: true});
-        } catch (e) {
-            console.error("Plotly error:", e);
+    // 2. Timeline Risk Bar Chart
+    const t_hours = JSON.parse(document.getElementById('timeline-hours').textContent);
+    const t_risk = JSON.parse(document.getElementById('timeline-risk').textContent);
+
+    Plotly.newPlot('timelineChart', [{
+        x: t_hours,
+        y: t_risk,
+        type: 'bar',
+        marker: {
+            color: t_risk.map(val => {
+                if(val > 75) return '#ef4444';      // Rojo
+                if(val > 40) return '#f59e0b';      // Naranja
+                return '#10b981';                   // Verde
+            }),
+            opacity: 0.8
         }
-    }, 100);
+    }], {
+        ...commonLayout,
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.05)', range: [0, 100], ticksuffix: '%' }
+    }, {displayModeBar: false});
+
 });
 </script>
 {% endblock %}

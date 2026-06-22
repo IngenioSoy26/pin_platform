@@ -3,22 +3,234 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="color: var(--text-color); font-weight: 600; margin: 0;">
-            <i class="fa-solid fa-chart-line text-info"></i> Regulacion Seguridad
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">        
+        <h2 style="color: var(--text-primary); font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px;">     
+            <i class="fa-solid fa-shield-halved text-warning"></i> Regulación & Seguridad (DOT/FMCSA)
         </h2>
+        <div class="d-flex gap-3">
+            <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 0.5rem 1rem; font-size: 0.9rem; border: 1px solid rgba(245, 158, 11, 0.3);">
+                <i class="fa-solid fa-scale-balanced me-2"></i>Cumplimiento Federal
+            </span>
+        </div>
     </div>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="map-controls-panel p-5 text-center" style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-                <i class="fa-solid fa-person-digging mb-4" style="font-size: 4rem; color: #3b82f6; opacity: 0.8;"></i>
-                <h3 style="color: var(--text-color);">Módulo en Construcción</h3>
-                <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto;">
-                    Esta vista formará parte del panel interactivo con gráficos Plotly y mapas Leaflet.
-                </p>
+    <!-- Layout de KPIs Superiores (Flexbox Puro) -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; width: 100%;">
+        <!-- KPI 1: CSA Score -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-ranking-star text-primary"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">CSA Score Promedio</span>
+                    <span class="kpi-value text-primary" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.csa_score }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 2: Inspecciones DOT -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-clipboard-check text-success"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Inspecciones DOT (Mes)</span>
+                    <span class="kpi-value text-success" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.dot_inspections }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 3: OOS Rate -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-ban text-danger"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Tasa Out of Service (OOS)</span>
+                    <span class="kpi-value text-danger" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.oos_rate }}</span>
+                </div>
+            </div>
+        </div>
+        <!-- KPI 4: Advertencias -->
+        <div style="flex: 1; min-width: 0;">
+            <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; font-size: 1.2rem; display: flex; justify-content: center; align-items: center; border-radius: 10px;">
+                    <i class="fa-solid fa-triangle-exclamation text-warning"></i>
+                </div>
+                <div class="kpi-info ms-3">
+                    <span class="kpi-label" style="font-size: 0.7rem; color: var(--text-muted); display: block; text-transform: uppercase;">Alertas de Seguridad Activas</span>
+                    <span class="kpi-value text-warning" style="font-size: 1.5rem; font-weight: bold;">{{ kpis.safety_warnings }}</span>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Main Content Grid -->
+    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem;">
+        
+        <!-- Left Column: Gráficos -->
+        <div style="flex: 2; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div style="display: flex; gap: 1.5rem;">
+                <!-- Gráfico Radar: CSA BASICs -->
+                <div class="glass-card p-4" style="flex: 1; min-width: 0;">
+                    <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-spider me-2 text-primary"></i>Puntuación CSA BASICs</h5>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Percentil de desempeño en categorías críticas de seguridad (menor es mejor).</p>
+                    <div id="csaRadarChart" style="width: 100%; height: 280px;"></div>
+                </div>
+
+                <!-- Gráfico de Barras: Inspecciones DOT -->
+                <div class="glass-card p-4" style="flex: 1; min-width: 0;">
+                    <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-file-shield me-2 text-info"></i>Inspecciones DOT por Nivel</h5>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Historial de inspecciones viales clasificadas por profundidad de revisión.</p>
+                    <div id="dotBarChart" style="width: 100%; height: 280px;"></div>
+                </div>
+            </div>
+
+            <!-- Tabla de Infracciones -->
+            <div class="glass-card p-4">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-clipboard-list me-2 text-danger"></i>Infracciones Recientes (OOS & Advertencias)</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover glass-table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="color: var(--text-muted);">Fecha</th>
+                                <th style="color: var(--text-muted);">Unidad</th>
+                                <th style="color: var(--text-muted);">Tipo de Infracción</th>
+                                <th style="color: var(--text-muted);">Severidad</th>
+                                <th style="color: var(--text-muted);">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in recent_violations %}
+                            <tr>
+                                <td style="color: var(--text-muted);">{{ item.date }}</td>
+                                <td style="color: var(--text-primary); font-weight: 500;">
+                                    <i class="fa-solid fa-truck text-secondary me-2"></i>{{ item.unit }}
+                                </td>
+                                <td style="color: #e2e8f0;">{{ item.type }}</td>
+                                <td>
+                                    {% if 'OOS' in item.severity %}
+                                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">{{ item.severity }}</span>
+                                    {% elif item.severity == 'Crítico' %}
+                                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3);">{{ item.severity }}</span>
+                                    {% else %}
+                                        <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3);">{{ item.severity }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.status == 'Resuelto' or item.status == 'Reparado' %}
+                                        <span class="text-success"><i class="fa-solid fa-check-circle me-1"></i>{{ item.status }}</span>
+                                    {% else %}
+                                        <span class="text-warning"><i class="fa-solid fa-wrench me-1"></i>{{ item.status }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Información Normativa y PIN Impact -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="glass-card p-4 h-100">
+                <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-book-open me-2 text-success"></i>Normativas Clave (FMCSA)</h5>
+                
+                <div class="mb-4">
+                    <h6 style="color: #e2e8f0; font-size: 0.95rem; font-weight: 600;"><i class="fa-solid fa-ruler-vertical me-2" style="color: #94a3b8;"></i>§ 393.75 - Neumáticos</h6>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">Ningún vehículo motorizado debe ser operado en ninguna llanta que tenga una profundidad de la banda de rodadura menor a <strong>4/32"</strong> (direccional) o <strong>2/32"</strong> (resto de posiciones).</p>
+                    <div class="mt-2" style="background: rgba(16, 185, 129, 0.1); padding: 0.5rem; border-radius: 5px; border-left: 3px solid #10b981;">
+                        <small style="color: #10b981;"><i class="fa-solid fa-check-double me-1"></i>PIN asegura cumplimiento continuo y predictivo.</small>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 style="color: #e2e8f0; font-size: 0.95rem; font-weight: 600;"><i class="fa-solid fa-truck-fast me-2" style="color: #94a3b8;"></i>§ 395 - Horas de Servicio (HOS)</h6>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">Límites estrictos de conducción: 11 horas de manejo dentro de una ventana de 14 horas de servicio, tras 10 horas consecutivas de descanso.</p>
+                </div>
+
+                <div class="mb-4">
+                    <h6 style="color: #e2e8f0; font-size: 0.95rem; font-weight: 600;"><i class="fa-solid fa-weight-scale me-2" style="color: #94a3b8;"></i>§ 658 - Límites de Peso (Federal)</h6>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0;">Peso bruto máximo: <strong>80,000 lbs</strong>. Eje direccional: 20,000 lbs. Ejes tándem: 34,000 lbs.</p>
+                </div>
+                
+                <div class="mt-auto p-3 rounded" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3);">
+                    <h6 style="color: #3b82f6; margin-bottom: 5px;"><i class="fa-solid fa-shield me-2"></i>Impacto en Seguros</h6>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0;">Mantener una tasa OOS baja y un CSA Score en el cuartil superior reduce las primas de seguro de la flota en un promedio de 12% a 18% anual.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
 </div>
+
+<!-- Load Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- Inject Data -->
+{{ csa_labels|json_script:"csa-labels" }}
+{{ csa_values|json_script:"csa-values" }}
+{{ dot_levels|json_script:"dot-levels" }}
+{{ dot_counts|json_script:"dot-counts" }}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    const commonLayout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#94a3b8' },
+        margin: { t: 30, r: 30, b: 30, l: 30 },
+        showlegend: false
+    };
+
+    // 1. CSA Radar Chart
+    const cLabels = JSON.parse(document.getElementById('csa-labels').textContent);
+    const cValues = JSON.parse(document.getElementById('csa-values').textContent);
+
+    Plotly.newPlot('csaRadarChart', [{
+        type: 'scatterpolar',
+        r: cValues,
+        theta: cLabels,
+        fill: 'toself',
+        fillcolor: 'rgba(59, 130, 246, 0.3)',
+        line: { color: '#3b82f6', width: 2 },
+        marker: { color: '#0ea5e9', size: 6 }
+    }], {
+        ...commonLayout,
+        polar: {
+            radialaxis: { visible: true, range: [0, 100], color: 'rgba(255,255,255,0.2)', gridcolor: 'rgba(255,255,255,0.1)' },
+            angularaxis: { gridcolor: 'rgba(255,255,255,0.1)' },
+            bgcolor: 'rgba(0,0,0,0)'
+        }
+    }, {displayModeBar: false});
+
+    // 2. DOT Inspections Bar Chart
+    const dLevels = JSON.parse(document.getElementById('dot-levels').textContent);
+    const dCounts = JSON.parse(document.getElementById('dot-counts').textContent);
+
+    Plotly.newPlot('dotBarChart', [{
+        x: dLevels,
+        y: dCounts,
+        type: 'bar',
+        marker: {
+            color: ['#10b981', '#3b82f6', '#8b5cf6'],
+            opacity: 0.8
+        }
+    }], {
+        ...commonLayout,
+        margin: { t: 20, r: 20, b: 40, l: 40 },
+        xaxis: { showgrid: false },
+        yaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.05)' }
+    }, {displayModeBar: false});
+
+});
+</script>
 {% endblock %}
