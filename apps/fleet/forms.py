@@ -27,10 +27,9 @@ class TripForm(forms.ModelForm):
         self.fields['driver'].label_from_instance = lambda obj: f"{obj.first_name} {obj.last_name} (CDL: {obj.license_number})"
         self.fields['truck'].label_from_instance = lambda obj: f"{obj.plate} - {obj.brand} {obj.model}"
         self.fields['company'].label_from_instance = lambda obj: f"{obj.legal_name} (DOT: {obj.dot_number})"
-        # Evitar cargar millones de empresas en memoria. Solo mostramos las que tienen tractomulas registradas o la de prueba/simuladas.
-        self.fields['company'].queryset = self.fields['company'].queryset.filter(
-            id__in=Truck.objects.values('carrier_id').distinct()
-        ) | self.fields['company'].queryset.filter(legal_name__icontains='Prueba') | self.fields['company'].queryset.filter(legal_name__icontains='[SIMULADO]')
+        carrier_ids = Truck.objects.exclude(carrier_id__isnull=True).values_list('carrier_id', flat=True).distinct()
+        companies = self.fields['company'].queryset.filter(id__in=carrier_ids)
+        self.fields['company'].queryset = companies if companies.exists() else self.fields['company'].queryset.order_by('legal_name')[:50]
 
 class DriverForm(forms.ModelForm):
     class Meta:
@@ -64,6 +63,5 @@ class TruckForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from apps.core.models import CarrierCompany
-        test_company = CarrierCompany.objects.filter(legal_name__icontains='Prueba') | CarrierCompany.objects.filter(legal_name__icontains='[SIMULADO]')
-        self.fields['carrier'].queryset = test_company if test_company.exists() else CarrierCompany.objects.all()[:50]
+        self.fields['carrier'].queryset = CarrierCompany.objects.order_by('legal_name')[:50]
         self.fields['carrier'].label_from_instance = lambda obj: f"{obj.legal_name} (DOT: {obj.dot_number})"

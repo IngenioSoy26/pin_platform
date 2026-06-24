@@ -115,71 +115,233 @@
         }).addTo(map);
 
         try {
-            const rawFleetData = document.getElementById('fleet-data-main').textContent;
-            const fleetData = JSON.parse(rawFleetData);
-            const bounds = [];
-            
-            fleetData.forEach(truck => {
-                if (truck.lat && truck.lon) {
-                    const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
-                    const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
-                    const statusText = truck.status === 'ACTIVE' ? 'OPERACIÓN NORMAL' : (truck.status === 'MAINTENANCE' ? 'ADVERTENCIA' : 'CRÍTICO');
-                    
-                    // Animación de pulso para estados críticos/advertencia
-                    const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
-                    
-                    // Icono Glassmorphism Dinámico
-                    const truckIcon = L.divIcon({
-                        html: `<div class="${pulseClass}" style="background: ${bgGlow}; border: 2px solid ${statusColor}; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);"><i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 10px;"></i></div>`,
-                        className: 'custom-leaflet-icon',
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
-                    });
-                    
-                    const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
-                    bounds.push([truck.lat, truck.lon]);
-                    
-                    let alertHtml = '';
-                    if (truck.active_alert) {
-                        const alertIcon = truck.status === 'INACTIVE' ? 'fa-triangle-exclamation' : 'fa-wrench';
-                        alertHtml = `
-                            <div style="margin-top: 8px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 6px; border-left: 3px solid ${statusColor};">
-                                <span style="font-size: 10px; color: #64748b; font-weight: 700; display: block; margin-bottom: 2px;">ALERTA ACTIVA:</span>
-                                <span style="font-size: 11px; color: #1e293b; font-weight: 600;"><i class="fa-solid ${alertIcon}" style="color: ${statusColor}; margin-right: 4px;"></i>${truck.active_alert}</span>
-                            </div>
-                        `;
+            const urlParams = new URLSearchParams(window.location.search);
+            const demoMode = urlParams.get('demo') !== '0';
+
+            const truckLayer = L.layerGroup().addTo(map);
+            const routeLayer = L.layerGroup().addTo(map);
+            const traveledLayer = L.layerGroup().addTo(map);
+            const markersByPlate = new Map();
+            let selectedPlate = null;
+            let demoRoutesById = {};
+
+            function buildLiveUrl() {
+                if (!demoMode) {
+                    return '/api/dashboard/live/';
+                }
+                const params = new URLSearchParams();
+                params.set('demo', '1');
+                return `/api/dashboard/live/?${params.toString()}`;
+            }
+
+            function buildDemoRoutesUrl() {
+                return '/api/routes/demo/';
+            }
+
+            async function ensureDemoRoutesLoaded() {
+                if (!demoMode) {
+                    return;
+                }
+                if (Object.keys(demoRoutesById).length > 0) {
+                    return;
+                }
+                const response = await fetch(buildDemoRoutesUrl());
+                const payload = await response.json();
+                const routes = payload.routes || [];
+                demoRoutesById = {};
+                routes.forEach(route => {
+                    if (route && route.id) {
+                        demoRoutesById[route.id] = route;
                     }
-                    
-                    const popupContent = `
-                        <div style="font-family: 'Inter', sans-serif; min-width: 180px;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div>
-                                    <h6 style="margin: 0 0 2px 0; font-weight: 800; color: #1e293b; font-size: 14px;">${truck.plate}</h6>
-                                    <p style="margin: 0; font-size: 11px; color: #64748b;">${truck.brand}</p>
-                                </div>
-                                <div style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; background: ${statusColor}22; color: ${statusColor};">
-                                    ${statusText}
-                                </div>
-                            </div>
-                            ${alertHtml}
-                            <div style="margin-top: 10px; text-align: center;">
-                                <button onclick="window.location.href='/dashboards/iot/'" style="background: #3b82f6; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%;">
-                                    <i class="fa-solid fa-satellite-dish me-1"></i> Ver Telemetría en Vivo
-                                </button>
-                            </div>
+                });
+            }
+
+            function formatRouteLabel(truck) {
+                if (!truck || !truck.route_name) {
+                    return '';
+                }
+                return `<p style="margin: 6px 0 0 0; font-size: 11px; color: #64748b;"><strong>Ruta:</strong> ${truck.route_name}</p>`;
+            }
+
+            function statusStyles(truck) {
+                const status = truck.status;
+                if (status === 'ACTIVE') {
+                    return { statusColor: '#10b981', bgGlow: 'rgba(16, 185, 129, 0.2)', statusText: 'OPERACIÓN NORMAL' };
+                }
+                if (status === 'MAINTENANCE') {
+                    return { statusColor: '#f59e0b', bgGlow: 'rgba(245, 158, 11, 0.2)', statusText: 'ADVERTENCIA' };
+                }
+                return { statusColor: '#ef4444', bgGlow: 'rgba(239, 68, 68, 0.2)', statusText: 'CRÍTICO' };
+            }
+
+            function makeTruckIcon(truck) {
+                const { statusColor, bgGlow } = statusStyles(truck);
+                const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
+                return L.divIcon({
+                    html: `<div class="${pulseClass}" style="background: ${bgGlow}; border: 2px solid ${statusColor}; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);"><i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 10px;"></i></div>`,
+                    className: 'custom-leaflet-icon',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+            }
+
+            function buildPopupContent(truck) {
+                const { statusColor, statusText } = statusStyles(truck);
+                let alertHtml = '';
+                if (truck.active_alert) {
+                    const alertIcon = truck.status === 'INACTIVE' ? 'fa-triangle-exclamation' : 'fa-wrench';
+                    alertHtml = `
+                        <div style="margin-top: 8px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 6px; border-left: 3px solid ${statusColor};">
+                            <span style="font-size: 10px; color: #64748b; font-weight: 700; display: block; margin-bottom: 2px;">ALERTA ACTIVA:</span>
+                            <span style="font-size: 11px; color: #1e293b; font-weight: 600;"><i class="fa-solid ${alertIcon}" style="color: ${statusColor}; margin-right: 4px;"></i>${truck.active_alert}</span>
                         </div>
                     `;
-                    marker.bindPopup(popupContent);
                 }
-            });
 
-            if(bounds.length > 0) {
-                map.fitBounds(bounds, {padding: [50, 50]});
+                const routeHtml = truck.is_demo ? formatRouteLabel(truck) : '';
+
+                return `
+                    <div style="font-family: 'Inter', sans-serif; min-width: 180px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h6 style="margin: 0 0 2px 0; font-weight: 800; color: #1e293b; font-size: 14px;">${truck.plate}</h6>
+                                <p style="margin: 0; font-size: 11px; color: #64748b;">${truck.brand}</p>
+                                ${routeHtml}
+                            </div>
+                            <div style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; background: ${statusColor}22; color: ${statusColor};">
+                                ${statusText}
+                            </div>
+                        </div>
+                        ${alertHtml}
+                        <div style="margin-top: 10px; text-align: center;">
+                            <button onclick="window.location.href='/dashboards/iot/'" style="background: #3b82f6; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%;">
+                                <i class="fa-solid fa-satellite-dish me-1"></i> Ver Telemetría en Vivo
+                            </button>
+                        </div>
+                    </div>
+                `;
             }
+
+            function clamp(value, min, max) {
+                return Math.max(min, Math.min(max, value));
+            }
+
+            function buildTraveledCoords(route, routePos) {
+                if (!route || !route.coords || route.coords.length < 2) {
+                    return [];
+                }
+                const maxIndex = route.coords.length - 2;
+                const pos = clamp(typeof routePos === 'number' ? routePos : 0, 0, maxIndex);
+                const i = Math.floor(pos);
+                const frac = pos - i;
+                const traveled = route.coords.slice(0, i + 1);
+                const a = route.coords[i];
+                const b = route.coords[i + 1];
+                const lat = a[0] + (b[0] - a[0]) * frac;
+                const lon = a[1] + (b[1] - a[1]) * frac;
+                traveled.push([lat, lon]);
+                return traveled;
+            }
+
+            function renderSelectedRoute(truck) {
+                routeLayer.clearLayers();
+                traveledLayer.clearLayers();
+
+                if (!truck || !truck.is_demo) {
+                    return;
+                }
+
+                const route = demoRoutesById[truck.route_id];
+                if (!route || !route.coords || route.coords.length < 2) {
+                    return;
+                }
+
+                const baseLine = L.polyline(route.coords, { color: '#38bdf8', weight: 2, opacity: 0.25 });
+                routeLayer.addLayer(baseLine);
+
+                const traveledCoords = buildTraveledCoords(route, truck.route_pos);
+                if (traveledCoords.length >= 2) {
+                    traveledLayer.addLayer(L.polyline(traveledCoords, { color: '#f59e0b', weight: 4, opacity: 0.75 }));
+                }
+            }
+
+            function upsertTruckMarker(truck) {
+                if (!truck.lat || !truck.lon) {
+                    return;
+                }
+
+                const icon = makeTruckIcon(truck);
+                const popupContent = buildPopupContent(truck);
+
+                if (markersByPlate.has(truck.plate)) {
+                    const marker = markersByPlate.get(truck.plate);
+                    marker.setLatLng([truck.lat, truck.lon]);
+                    marker.setIcon(icon);
+                    marker.setPopupContent(popupContent);
+                    return;
+                }
+
+                const marker = L.marker([truck.lat, truck.lon], { icon }).addTo(truckLayer);
+                marker.bindPopup(popupContent);
+                marker.on('click', async () => {
+                    selectedPlate = truck.plate;
+                    await ensureDemoRoutesLoaded();
+                    renderSelectedRoute(truck);
+                });
+                markersByPlate.set(truck.plate, marker);
+            }
+
+            function syncTruckMarkers(trucks) {
+                const seen = new Set();
+                (trucks || []).forEach(truck => {
+                    if (!truck || !truck.plate) {
+                        return;
+                    }
+                    seen.add(truck.plate);
+                    upsertTruckMarker(truck);
+                });
+
+                Array.from(markersByPlate.keys()).forEach(plate => {
+                    if (seen.has(plate)) {
+                        return;
+                    }
+                    const marker = markersByPlate.get(plate);
+                    if (marker) {
+                        truckLayer.removeLayer(marker);
+                    }
+                    markersByPlate.delete(plate);
+                });
+            }
+
+            const rawFleetData = document.getElementById('fleet-data-main').textContent;
+            const fleetData = JSON.parse(rawFleetData);
+
+            if (!demoMode) {
+                syncTruckMarkers(fleetData);
+            }
+
+            fetch(buildLiveUrl())
+                .then(response => response.json())
+                .then(data => {
+                    const trucks = data.trucks_map || [];
+                    syncTruckMarkers(trucks);
+                    if (!selectedPlate && trucks.length > 0) {
+                        selectedPlate = trucks[0].plate || null;
+                    }
+                    if (demoMode && selectedPlate) {
+                        const selected = trucks.find(t => t && t.plate === selectedPlate);
+                        if (selected) {
+                            ensureDemoRoutesLoaded().then(() => {
+                                renderSelectedRoute(selected);
+                            });
+                        }
+                    }
+                })
+                .catch(() => {});
             
             // Función AJAX para simular Live Polling
             setInterval(function() {
-                fetch('/api/dashboard/live/')
+                fetch(buildLiveUrl())
                     .then(response => response.json())
                     .then(data => {
                         // Actualizar KPIs superiores (Animación suave)
@@ -203,62 +365,16 @@
                             alertsList.innerHTML = data.latest_alerts_html;
                         }
 
-                        // Actualizar el mapa
-                        map.eachLayer((layer) => {
-                            if (layer instanceof L.Marker) {
-                                map.removeLayer(layer);
-                            }
-                        });
-                        
-                        data.trucks_map.forEach(truck => {
-                            if (truck.lat && truck.lon) {
-                                const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
-                                const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
-                                const statusText = truck.status === 'ACTIVE' ? 'OPERACIÓN NORMAL' : (truck.status === 'MAINTENANCE' ? 'ADVERTENCIA' : 'CRÍTICO');
-                                const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
-                                
-                                const truckIcon = L.divIcon({
-                                    html: `<div class="${pulseClass}" style="background: ${bgGlow}; border: 2px solid ${statusColor}; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);"><i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 10px;"></i></div>`,
-                                    className: 'custom-leaflet-icon',
-                                    iconSize: [24, 24],
-                                    iconAnchor: [12, 12]
+                        const trucks = data.trucks_map || [];
+                        syncTruckMarkers(trucks);
+                        if (selectedPlate) {
+                            const selected = trucks.find(t => t && t.plate === selectedPlate);
+                            if (selected) {
+                                ensureDemoRoutesLoaded().then(() => {
+                                    renderSelectedRoute(selected);
                                 });
-                                
-                                const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
-                                
-                                let alertHtml = '';
-                                if (truck.active_alert) {
-                                    const alertIcon = truck.status === 'INACTIVE' ? 'fa-triangle-exclamation' : 'fa-wrench';
-                                    alertHtml = `
-                                        <div style="margin-top: 8px; background: rgba(0,0,0,0.05); padding: 8px; border-radius: 6px; border-left: 3px solid ${statusColor};">
-                                            <span style="font-size: 10px; color: #64748b; font-weight: 700; display: block; margin-bottom: 2px;">ALERTA ACTIVA:</span>
-                                            <span style="font-size: 11px; color: #1e293b; font-weight: 600;"><i class="fa-solid ${alertIcon}" style="color: ${statusColor}; margin-right: 4px;"></i>${truck.active_alert}</span>
-                                        </div>
-                                    `;
-                                }
-                                
-                                const popupContent = `
-                                    <div style="font-family: 'Inter', sans-serif; min-width: 180px;">
-                                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                            <div>
-                                                <h6 style="margin: 0 0 2px 0; font-weight: 800; color: #1e293b; font-size: 14px;">${truck.plate}</h6>
-                                                <p style="margin: 0; font-size: 11px; color: #64748b;">${truck.brand}</p>
-                                            </div>
-                                            <div style="display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; background: ${statusColor}22; color: ${statusColor};">
-                                                ${statusText}
-                                            </div>
-                                        </div>
-                                        ${alertHtml}
-                                        <div style="margin-top: 10px; text-align: center;">
-                                            <button onclick="window.location.href='/dashboards/iot/'" style="background: #3b82f6; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%;">
-                                                <i class="fa-solid fa-satellite-dish me-1"></i> Ver Telemetría en Vivo
-                                            </button>
-                                        </div>
-                                    </div>
-                                `;
-                                marker.bindPopup(popupContent);
                             }
-                        });
+                        }
                     })
                     .catch(e => console.error("Auto-sync falló", e));
             }, 8000); // Refrescar cada 8 segundos

@@ -22,22 +22,6 @@
             <i class="fa-solid fa-truck-fast"></i>
             <span>Gestión de Flotas</span>
         </a>
-        <a href="#" class="nav-item">
-            <i class="fa-solid fa-gas-pump"></i>
-            <span>Estaciones & Combustible</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fa-solid fa-ring"></i>
-            <span>Centros de Llantas</span>
-        </a>
-        <a href="{% url 'weight_monitoring:dashboard' %}" class="nav-item {% if 'weight' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-scale-balanced"></i>
-            <span>Regulación & Peso</span>
-        </a>
-        <a href="{% url 'hos_monitoring:dashboard' %}" class="nav-item {% if 'hos' in request.path %}active{% endif %}">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>Monitoreo HOS</span>
-        </a>
         <a href="{% url 'data_ingestion:config_dashboard' %}" class="nav-item {% if 'configuracion' in request.path %}active{% endif %}" style="margin-top: auto;">
             <i class="fa-solid fa-gear"></i>
             <span>Configuración (ETL)</span>

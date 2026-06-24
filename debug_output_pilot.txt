@@ -1,5 +1,0 @@
-Encontrado: C:\Users\gusta\Desktop\Maestria\0.1. Practicas\pin_platform\media\datasets\2026\06\LovesSearchResults.xlsx
-Logs:
-Iniciando procesamiento ETL nativo...
-Se procesaron e importaron 0 Truck Stops (detectando automáticamente las columnas).
-Procesamiento finalizado con éxito.

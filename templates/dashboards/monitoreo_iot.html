@@ -558,7 +558,7 @@
                         <button class="btn btn-sm btn-secondary" onclick="closeDigitalTwin()" style="border-radius: 8px;"><i class="fa-solid fa-arrow-left me-1"></i> Volver</button>
                     </div>
                 </div>
-                <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-top: -10px;">Visualización en vivo: <strong id="twin-vehicle-name">SIM-104 (Kenworth T680)</strong></p>
+                <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-top: -10px;">Visualización en vivo: <strong id="twin-vehicle-name">Selecciona una unidad de la flota</strong></p>
                 
                 <div class="digital-twin-container">
                 <div class="truck-chassis">
@@ -666,10 +666,23 @@
     const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
     const textColor = isDarkMode ? '#cbd5e1' : '#64748b';
     const gridColor = isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+    const hasHistoricalData = Array.isArray(timeseriesData.times) && timeseriesData.times.length > 0;
+    const chartTimes = hasHistoricalData
+        ? timeseriesData.times
+        : Array.from({length: 12}, (_, idx) => {
+            const pointTime = new Date(Date.now() - ((11 - idx) * 10 * 60 * 1000));
+            return pointTime.toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit', hour12: false});
+        });
+    const baseTempSeries = hasHistoricalData
+        ? timeseriesData.temp
+        : new Array(chartTimes.length).fill(0);
+    const basePressureSeries = hasHistoricalData
+        ? timeseriesData.pressure
+        : new Array(chartTimes.length).fill(0);
 
     const trace1 = {
-        x: timeseriesData.times,
-        y: timeseriesData.temp,
+        x: chartTimes,
+        y: baseTempSeries,
         name: 'Temperatura (°F)',
         type: 'scatter',
         mode: 'lines+markers',
@@ -678,8 +691,8 @@
     };
 
     const trace2 = {
-        x: timeseriesData.times,
-        y: timeseriesData.pressure,
+        x: chartTimes,
+        y: basePressureSeries,
         name: 'Presión (PSI)',
         type: 'scatter',
         mode: 'lines',
@@ -694,6 +707,18 @@
         xaxis: { showgrid: false, tickfont: { color: textColor } },
         yaxis: { gridcolor: gridColor, tickfont: { color: textColor } }
     };
+
+    if (!hasHistoricalData) {
+        layout.annotations = [{
+            text: 'Sin lecturas históricas disponibles',
+            xref: 'paper',
+            yref: 'paper',
+            x: 0.5,
+            y: 0.5,
+            showarrow: false,
+            font: { color: textColor, size: 14 }
+        }];
+    }
 
     // Make plot variable global so we can update it
     let iotPlot = null;
@@ -890,7 +915,7 @@
         if (iotPlot) {
             Plotly.deleteTraces('timeseriesChart', [0, 1]);
         }
-        for(let i=0; i<24; i++) {
+        for(let i=0; i<chartTimes.length; i++) {
             newTempData.push((truckData.avgTemp + (Math.random()*4-2)).toFixed(1));
             newPsiData.push((truckData.avgPsi + (Math.random()*2-1)).toFixed(1));
         }
@@ -898,14 +923,14 @@
         try {
             Plotly.addTraces('timeseriesChart', [
                 {
-                    x: timeseriesData.times,
+                    x: chartTimes,
                     y: newTempData,
                     name: `Temp (°F) [${currentVehiclePlate}]`,
                     type: 'scatter', mode: 'lines+markers',
                     line: {color: '#f59e0b', width: 3, shape: 'spline'}
                 },
                 {
-                    x: timeseriesData.times,
+                    x: chartTimes,
                     y: newPsiData,
                     name: `PSI [${currentVehiclePlate}]`,
                     type: 'scatter', mode: 'lines',

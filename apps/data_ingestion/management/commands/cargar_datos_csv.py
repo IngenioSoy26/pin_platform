@@ -1,25 +1,26 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from django.conf import settings
 import os
 import glob
 from apps.data_ingestion.models import DataSource, ETLJob
 from apps.data_ingestion.etl import run_etl_job
 
 class Command(BaseCommand):
-    help = 'Carga los 14 datasets estáticos a la base de datos (Fase 12)'
+    help = 'Carga los 15 datasets operativos desde la carpeta data a la base de datos'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--dir',
             type=str,
-            default='data',
-            help='Directorio donde se encuentran los datasets (default: data)'
+            default=str(settings.DATA_DIR),
+            help='Directorio donde se encuentran los datasets operativos (default: settings.DATA_DIR)'
         )
 
     def handle(self, *args, **options):
         data_dir = options['dir']
         
-        self.stdout.write(self.style.SUCCESS(f"Iniciando ETL para los 14 datasets desde '{data_dir}'..."))
+        self.stdout.write(self.style.SUCCESS(f"Iniciando ETL para los 15 datasets desde '{data_dir}'..."))
         
         if not os.path.exists(data_dir):
             self.stdout.write(self.style.WARNING(f"El directorio '{data_dir}' no existe. Por favor, coloque los archivos allí o use --dir <ruta>"))
@@ -72,4 +73,4 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(self.style.ERROR(f"  -> Fallido. Logs de error:\n{job.error_log}"))
                 
-        self.stdout.write(self.style.SUCCESS("\n¡Fase 12 (Data Ingestion) ejecutada por completo!"))
+        self.stdout.write(self.style.SUCCESS("\n¡ETL operativo ejecutado por completo!"))

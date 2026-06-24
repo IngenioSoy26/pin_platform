@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.DashboardsHubView.as_view(), name='hub'),
     path('resumen/', views.ResumenView.as_view(), name='resumen'),
     path('iot/', views.MonitoreoIoTView.as_view(), name='monitoreo_iot'),
+    path('api/geoespacial/live/', views.api_geoespacial_live, name='api_geoespacial_live'),
     path('alertas/', views.AlertasView.as_view(), name='alertas'),
     path('hos/', views.HOSComplianceView.as_view(), name='hos_compliance'),
     path('llantas/', views.DesgasteLlantasView.as_view(), name='desgaste_llantas'),

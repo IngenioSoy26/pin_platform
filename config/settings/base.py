@@ -185,6 +185,7 @@ if env("USE_REDIS_CHANNEL_LAYER", default=False):
     }
 
 ML_MODELS_DIR = BASE_DIR / "ml_models"
+DATA_DIR = Path(env("DATA_DIR", default=str(BASE_DIR / "data")))
 DATASET_DIR = Path(env("DATASET_DIR", default=str(BASE_DIR / "dataset")))
 DOCS_DIR = BASE_DIR / "docs"
 

@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
-from apps.core.views import api_routes, dashboard_view, map_view, api_locations, api_live_dashboard
+from apps.core.views import api_routes, api_demo_routes, dashboard_view, map_view, api_locations, api_live_dashboard
 
 def home(request):
     return render(request, "home.html")
@@ -23,10 +23,12 @@ urlpatterns = [
     path("map/", map_view, name="map"),
     path("api/locations/", api_locations, name="api_locations"),
     path("api/routes/", api_routes, name="api_routes"),
+    path("api/routes/demo/", api_demo_routes, name="api_demo_routes"),
     path("admin/", admin.site.urls),
     path("fleet/", include("apps.fleet.urls")),
     path("hos/", include("apps.hos_monitoring.urls")),
     path("weight/", include("apps.weight_monitoring.urls")),
+    path("routes/", include("apps.routes.urls")),
     path("api/iot/", include("apps.iot_ingestion.urls")),
     path("dashboards/", include("apps.dashboards.urls")),
     path("configuracion/", include("apps.data_ingestion.urls")),
@@ -34,3 +36,4 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.BASE_DIR / "static")

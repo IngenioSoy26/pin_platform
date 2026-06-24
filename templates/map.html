@@ -49,6 +49,18 @@
                 <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:3px;background:#10b981;border-radius:2px;"></div> Estatales</div>
                 <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px;height:3px;background:#8b5cf6;border-radius:2px;"></div> Terciarias/Locales</div>
             </div>
+
+            <label class="toggle-container" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
+                <input type="checkbox" id="toggle-roughness" checked style="margin-right: 10px; accent-color: #dc2626;">
+                <span><i class="fa-solid fa-triangle-exclamation" style="color: #dc2626; width: 20px;"></i> Rugosidad de carretera</span>
+            </label>
+            <div id="roughness-legend" style="margin-left: 30px; margin-bottom: 12px; font-size: 11px; color: var(--text-muted);">
+                <div style="margin-bottom: 5px;">De menor rojo a mayor rojo: más deterioro y mayor riesgo operativo.</div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:4px;background:#fee2e2;border-radius:2px;"></div> Baja rugosidad</div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:4px;background:#fca5a5;border-radius:2px;"></div> Moderada</div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;"><div style="width:12px;height:4px;background:#ef4444;border-radius:2px;"></div> Alta</div>
+                <div style="display:flex; align-items:center; gap:5px;"><div style="width:12px;height:4px;background:#991b1b;border-radius:2px;"></div> Crítica / peligrosa</div>
+            </div>
             
             <hr style="border: 0; border-top: 1px solid var(--border-strong); margin: 15px 0;">
 
@@ -213,6 +225,282 @@
 
     // Capa para las rutas NHS
     let routesLayer = null;
+    let roughnessLayer = null;
+
+    const fleetLayer = L.layerGroup().addTo(map);
+    const fleetRouteLayer = L.layerGroup().addTo(map);
+    const fleetTraveledLayer = L.layerGroup().addTo(map);
+    const fleetMarkersByPlate = new Map();
+    let fleetSelectedPlate = null;
+    let demoRoutesById = {};
+    const urlParams = new URLSearchParams(window.location.search);
+    const fleetDemoMode = urlParams.get('demo') !== '0';
+
+    function buildFleetLiveUrl() {
+        const params = new URLSearchParams();
+        if (fleetDemoMode) {
+            params.set('demo', '1');
+        }
+        return `/api/dashboard/live/?${params.toString()}`;
+    }
+
+    async function ensureDemoRoutesLoaded() {
+        if (!fleetDemoMode) {
+            return;
+        }
+        if (Object.keys(demoRoutesById).length > 0) {
+            return;
+        }
+        const response = await fetch('/api/routes/demo/');
+        const payload = await response.json();
+        const routes = payload.routes || [];
+        demoRoutesById = {};
+        routes.forEach(route => {
+            if (route && route.id) {
+                demoRoutesById[route.id] = route;
+            }
+        });
+    }
+
+    function fleetStatusStyles(truck) {
+        const status = truck.status;
+        if (status === 'ACTIVE') {
+            return { statusColor: '#10b981', bgGlow: 'rgba(16, 185, 129, 0.2)', statusText: 'OPERACIÓN' };
+        }
+        if (status === 'MAINTENANCE') {
+            return { statusColor: '#f59e0b', bgGlow: 'rgba(245, 158, 11, 0.2)', statusText: 'MANTENIMIENTO' };
+        }
+        return { statusColor: '#ef4444', bgGlow: 'rgba(239, 68, 68, 0.2)', statusText: 'INACTIVO' };
+    }
+
+    function makeFleetIcon(truck) {
+        const { statusColor, bgGlow } = fleetStatusStyles(truck);
+        return L.divIcon({
+            html: `<div style="background: ${bgGlow}; border: 2px solid ${statusColor}; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);"><i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 10px;"></i></div>`,
+            className: 'custom-leaflet-icon',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+        });
+    }
+
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function getRoughnessLegend() {
+        return document.getElementById('roughness-legend');
+    }
+
+    function setRoughnessLegendVisible(visible) {
+        const legend = getRoughnessLegend();
+        if (legend) {
+            legend.style.display = visible ? 'block' : 'none';
+        }
+    }
+
+    function roughnessColorFromIri(iri) {
+        const iriValue = Number(iri);
+        const normalized = clamp((iriValue - 70) / 170, 0, 1);
+        const green = Math.round(226 - (normalized * 199));
+        const blue = Math.round(226 - (normalized * 199));
+        return `rgb(220, ${green}, ${blue})`;
+    }
+
+    function roughnessStyle(feature) {
+        const iri = Number(feature?.properties?.iri || 0);
+        const normalized = clamp((iri - 70) / 170, 0, 1);
+        return {
+            color: roughnessColorFromIri(iri),
+            weight: 2 + (normalized * 4),
+            opacity: 0.45 + (normalized * 0.45),
+            lineCap: 'round',
+            lineJoin: 'round'
+        };
+    }
+
+    function buildRoughnessPopup(feature) {
+        const props = feature?.properties || {};
+        const routeName = props.route_name || 'Segmento vial';
+        const iri = props.iri != null ? Number(props.iri).toFixed(1) : 'Sin dato';
+        const lengthText = props.length_miles != null ? `${Number(props.length_miles).toFixed(2)} mi` : 'Tramo referencial';
+        const sourceText = props.is_synthetic ? 'Estimación visual sobre la red NHS' : 'Segmento HPMS';
+
+        return `
+            <div class="map-popup">
+                <h3 style="margin:0 0 6px 0; color:var(--text-color); font-size:16px;">${routeName}</h3>
+                <p style="margin:0; font-size:13px; color:var(--text-muted);"><i class="fa-solid fa-road"></i> ${props.route_number || 'Ruta operativa'}</p>
+                <p style="margin:4px 0 0 0; font-size:13px;"><strong>IRI:</strong> ${iri}</p>
+                <p style="margin:4px 0 0 0; font-size:13px;"><strong>Clase:</strong> ${props.roughness_class || 'N/A'}</p>
+                <p style="margin:4px 0 0 0; font-size:13px;"><strong>Riesgo:</strong> ${props.risk_label || 'Sin clasificar'}</p>
+                <p style="margin:4px 0 0 0; font-size:13px;"><strong>Longitud:</strong> ${lengthText}</p>
+                <p style="margin:6px 0 0 0; font-size:11px; color:var(--text-muted);">${sourceText}</p>
+            </div>
+        `;
+    }
+
+    async function loadRoughnessLayer() {
+        if (roughnessLayer) {
+            return;
+        }
+
+        const roughnessIndicator = document.createElement('div');
+        roughnessIndicator.id = 'roughness-loading';
+        roughnessIndicator.innerHTML = '<i class="fa-solid fa-triangle-exclamation fa-spin" style="color:#dc2626;"></i> Analizando rugosidad vial...';
+        roughnessIndicator.style.fontSize = '12px';
+        roughnessIndicator.style.color = '#dc2626';
+        roughnessIndicator.style.textAlign = 'center';
+        roughnessIndicator.style.marginTop = '10px';
+        document.querySelector('.layer-toggles').appendChild(roughnessIndicator);
+
+        try {
+            const response = await fetch('/routes/hpms/roughness-geojson/?limit=260');
+            if (!response.ok) {
+                roughnessIndicator.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error cargando rugosidad';
+                return;
+            }
+
+            const payload = await response.json();
+            const features = payload.features || [];
+            roughnessLayer = L.geoJSON(payload, {
+                style: roughnessStyle,
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup(buildRoughnessPopup(feature));
+                }
+            });
+
+            const usingFallback = Boolean(payload.meta && payload.meta.using_fallback);
+            roughnessIndicator.innerHTML = usingFallback
+                ? '<i class="fa-solid fa-check" style="color:#dc2626;"></i> Rugosidad lista (estimada sobre la red NHS)'
+                : '<i class="fa-solid fa-check" style="color:#dc2626;"></i> Rugosidad HPMS lista';
+
+            if (document.getElementById('toggle-roughness').checked && features.length > 0) {
+                roughnessLayer.addTo(map);
+                setRoughnessLegendVisible(true);
+            }
+
+            if (features.length === 0) {
+                roughnessIndicator.innerHTML = '<i class="fa-solid fa-circle-info"></i> No hay segmentos de rugosidad disponibles';
+                setRoughnessLegendVisible(false);
+                return;
+            }
+
+            setTimeout(() => roughnessIndicator.remove(), 3500);
+        } catch (error) {
+            console.error('Error loading roughness layer:', error);
+            roughnessIndicator.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:red;"></i> Error de rugosidad';
+            setRoughnessLegendVisible(false);
+        }
+    }
+
+    function buildTraveledCoords(route, routePos) {
+        if (!route || !route.coords || route.coords.length < 2) {
+            return [];
+        }
+        const maxIndex = route.coords.length - 2;
+        const pos = clamp(typeof routePos === 'number' ? routePos : 0, 0, maxIndex);
+        const i = Math.floor(pos);
+        const frac = pos - i;
+        const traveled = route.coords.slice(0, i + 1);
+        const a = route.coords[i];
+        const b = route.coords[i + 1];
+        const lat = a[0] + (b[0] - a[0]) * frac;
+        const lon = a[1] + (b[1] - a[1]) * frac;
+        traveled.push([lat, lon]);
+        return traveled;
+    }
+
+    function renderFleetRoute(truck) {
+        fleetRouteLayer.clearLayers();
+        fleetTraveledLayer.clearLayers();
+        if (!fleetDemoMode || !truck || !truck.route_id) {
+            return;
+        }
+        const route = demoRoutesById[truck.route_id];
+        if (!route || !route.coords || route.coords.length < 2) {
+            return;
+        }
+        fleetRouteLayer.addLayer(L.polyline(route.coords, { color: '#38bdf8', weight: 2, opacity: 0.35 }));
+        const traveledCoords = buildTraveledCoords(route, truck.route_pos);
+        if (traveledCoords.length >= 2) {
+            fleetTraveledLayer.addLayer(L.polyline(traveledCoords, { color: '#22c55e', weight: 4, opacity: 0.85 }));
+        }
+    }
+
+    function upsertFleetMarker(truck) {
+        if (!truck || !truck.plate || !truck.lat || !truck.lon) {
+            return;
+        }
+        const icon = makeFleetIcon(truck);
+        const { statusColor, statusText } = fleetStatusStyles(truck);
+        const routeHtml = truck.route_name ? `<div style="margin-top: 6px; font-size: 11px; color: #64748b;"><strong>Ruta:</strong> ${truck.route_name}</div>` : '';
+        const popup = `
+            <div class="map-popup">
+                <div style="font-weight: 800;">${truck.plate}</div>
+                <div style="font-size: 12px; color: #94a3b8;">${truck.brand}</div>
+                ${truck.is_demo ? routeHtml : ''}
+                <div style="margin-top: 8px; display: inline-block; background: ${statusColor}22; color: ${statusColor}; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">${statusText}</div>
+            </div>
+        `;
+
+        if (fleetMarkersByPlate.has(truck.plate)) {
+            const marker = fleetMarkersByPlate.get(truck.plate);
+            marker.setLatLng([truck.lat, truck.lon]);
+            marker.setIcon(icon);
+            marker.setPopupContent(popup);
+            return;
+        }
+
+        const marker = L.marker([truck.lat, truck.lon], { icon }).addTo(fleetLayer);
+        marker.bindPopup(popup);
+        marker.on('click', async () => {
+            fleetSelectedPlate = truck.plate;
+            await ensureDemoRoutesLoaded();
+            renderFleetRoute(truck);
+        });
+        fleetMarkersByPlate.set(truck.plate, marker);
+    }
+
+    function syncFleetMarkers(trucks) {
+        const seen = new Set();
+        (trucks || []).forEach(truck => {
+            if (!truck || !truck.plate) {
+                return;
+            }
+            seen.add(truck.plate);
+            upsertFleetMarker(truck);
+        });
+
+        Array.from(fleetMarkersByPlate.keys()).forEach(plate => {
+            if (seen.has(plate)) {
+                return;
+            }
+            const marker = fleetMarkersByPlate.get(plate);
+            if (marker) {
+                fleetLayer.removeLayer(marker);
+            }
+            fleetMarkersByPlate.delete(plate);
+        });
+    }
+
+    async function syncFleetLive() {
+        const response = await fetch(buildFleetLiveUrl());
+        const data = await response.json();
+        const trucks = data.trucks_map || [];
+        syncFleetMarkers(trucks);
+
+        if (fleetDemoMode) {
+            await ensureDemoRoutesLoaded();
+        }
+        if (!fleetSelectedPlate && trucks.length > 0) {
+            fleetSelectedPlate = trucks[0].plate || null;
+        }
+        if (fleetSelectedPlate) {
+            const selected = trucks.find(t => t && t.plate === fleetSelectedPlate);
+            if (selected) {
+                renderFleetRoute(selected);
+            }
+        }
+    }
     
     // Almacenar todos los marcadores de Truck Stops para poder filtrarlos después
     let allTruckStopMarkers = [];
@@ -378,6 +666,11 @@
         }
     }
 
+    syncFleetLive().catch(() => {});
+    setInterval(() => {
+        syncFleetLive().catch(() => {});
+    }, 8000);
+
     // Función para cargar las rutas NHS (GeoJSON)
     // El archivo de rutas pesa 544 MB, esto colapsa el navegador en Promise.all
     // Lo sacamos de la promesa general y le ponemos un control de error específico.
@@ -477,6 +770,7 @@
         // Sacamos loadRoutesLayer() del Promise.all porque detiene la ejecución de todo lo demás
         // debido al peso masivo del archivo GeoJSON (544MB). Lo ejecutamos en paralelo pero independiente.
         loadRoutesLayer();
+        loadRoughnessLayer();
 
         await Promise.all([
             loadLayer('truck_stops', 'truck_stops'),
@@ -502,6 +796,12 @@
         const routesToggle = document.getElementById('toggle-routes');
         if (routesLayer && (!routesToggle || !routesToggle.checked)) {
             map.removeLayer(routesLayer);
+        }
+
+        const roughnessToggle = document.getElementById('toggle-roughness');
+        if (roughnessLayer && (!roughnessToggle || !roughnessToggle.checked)) {
+            map.removeLayer(roughnessLayer);
+            setRoughnessLegendVisible(false);
         }
         
         indicator.innerHTML = '<i class="fa-solid fa-check" style="color: #10b981;"></i> Datos cargados';
@@ -529,6 +829,15 @@
             e.target.checked ? map.addLayer(routesLayer) : map.removeLayer(routesLayer);
         }
     });
+    document.getElementById('toggle-roughness').addEventListener('change', async function(e) {
+        if (!roughnessLayer && e.target.checked) {
+            await loadRoughnessLayer();
+        }
+        if (roughnessLayer) {
+            e.target.checked ? map.addLayer(roughnessLayer) : map.removeLayer(roughnessLayer);
+        }
+        setRoughnessLegendVisible(Boolean(e.target.checked && roughnessLayer));
+    });
 
     // Listeners para las nuevas capas de comodidades
     document.getElementById('toggle-showers').addEventListener('change', function(e) {
@@ -543,6 +852,8 @@
     document.getElementById('toggle-scales').addEventListener('change', function(e) {
         e.target.checked ? map.addLayer(clusters.scales) : map.removeLayer(clusters.scales);
     });
+
+    setRoughnessLegendVisible(document.getElementById('toggle-roughness').checked);
 
     // Iniciar carga
     loadAllData();

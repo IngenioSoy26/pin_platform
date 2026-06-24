@@ -1,9 +1,37 @@
 import csv
+import json
 import traceback
 import os
+from itertools import chain
 from django.utils import timezone
 from apps.core.models import TruckStop, WIMStation, Amenity, RecyclingFacility, TransportationStatistic, TireShop, AlternativeFuelStation, CarrierCompany, WeightEnforcementStatistic
+from apps.routes.models import HPMSInventorySource
+from apps.routes.services import RouteService
 from .models import DataSource, ETLJob
+
+
+def _get_progress_interval(file_path):
+    file_size = os.path.getsize(file_path)
+    if file_size >= 1_000_000_000:
+        return 50_000
+    if file_size >= 100_000_000:
+        return 10_000
+    if file_size >= 10_000_000:
+        return 2_000
+    return 500
+
+
+def _track_reader_progress(reader, etl_job):
+    interval = _get_progress_interval(etl_job.dataset.file_path)
+
+    def generator():
+        for processed_count, row in enumerate(reader, start=1):
+            if processed_count % interval == 0:
+                etl_job.records_processed = processed_count
+                etl_job.save(update_fields=['records_processed'])
+            yield row
+
+    return generator()
 
 def run_etl_job(etl_job):
     """
@@ -23,54 +51,59 @@ def run_etl_job(etl_job):
         # Procesamiento CSV
         if ext == '.csv':
             with open(file_path, mode='r', encoding='utf-8-sig', errors='replace') as f:
-                reader = list(csv.DictReader(f))
+                reader = csv.DictReader(f)
                 _route_processing(reader, etl_job)
                 
         # Procesamiento Excel (xlsx)
         elif ext in ['.xlsx', '.xls']:
             import openpyxl
-            wb = openpyxl.load_workbook(file_path, data_only=True)
-            sheet = wb.active
+            wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
+            try:
+                sheet = wb.active
 
-            header_row_idx = 1
-            headers = []
-            max_headers = 0
+                header_row_idx = 1
+                headers = []
+                max_headers = 0
 
-            for i, row in enumerate(sheet.iter_rows(min_row=1, max_row=10), start=1):
-                current_headers = [str(cell.value).strip() if cell.value else f"Empty_{j}" for j, cell in enumerate(row)]
-                valid_headers_count = sum(1 for h in current_headers if not h.startswith("Empty_"))
+                for i, row in enumerate(sheet.iter_rows(min_row=1, max_row=10, values_only=True), start=1):
+                    current_headers = [str(cell).strip() if cell else f"Empty_{j}" for j, cell in enumerate(row)]
+                    valid_headers_count = sum(1 for h in current_headers if not h.startswith("Empty_"))
 
-                if valid_headers_count > max_headers and valid_headers_count > 3:
-                    max_headers = valid_headers_count
-                    headers = current_headers
-                    header_row_idx = i
+                    if valid_headers_count > max_headers and valid_headers_count > 3:
+                        max_headers = valid_headers_count
+                        headers = current_headers
+                        header_row_idx = i
 
-            reader = []
-            for row in sheet.iter_rows(min_row=header_row_idx + 1):
-                row_data = {headers[i]: cell.value for i, cell in enumerate(row) if i < len(headers)}
-                reader.append(row_data)
+                def iter_excel_rows():
+                    for row in sheet.iter_rows(min_row=header_row_idx + 1, values_only=True):
+                        yield {
+                            headers[i]: row[i]
+                            for i in range(min(len(headers), len(row)))
+                        }
 
-            _route_processing(reader, etl_job)
+                _route_processing(iter_excel_rows(), etl_job)
+            finally:
+                wb.close()
             
         # Procesamiento GeoJSON
         elif ext == '.geojson':
-            import json
             with open(file_path, mode='r', encoding='utf-8') as f:
                 geojson_data = json.load(f)
-                
-            reader = []
-            if 'features' in geojson_data:
-                for feature in geojson_data['features']:
-                    props = feature.get('properties', {})
+
+            def iter_geojson_rows():
+                for feature in geojson_data.get('features', []):
+                    props = dict(feature.get('properties', {}))
                     geom = feature.get('geometry', {})
+                    if geom:
+                        props['geometry'] = geom
                     if geom and geom.get('type') == 'Point':
                         coords = geom.get('coordinates', [])
                         if len(coords) >= 2:
                             props['lon'] = coords[0]
                             props['lat'] = coords[1]
-                    reader.append(props)
-                    
-            _route_processing(reader, etl_job)
+                    yield props
+
+            _route_processing(iter_geojson_rows(), etl_job)
 
         else:
             raise ValueError(f"Formato no soportado para ETL nativo: {ext}")
@@ -89,27 +122,69 @@ def run_etl_job(etl_job):
     etl_job.save()
 
 def _route_processing(reader, etl_job):
+    tracked_reader = _track_reader_progress(reader, etl_job)
     name_lower = etl_job.dataset.name.lower()
-    if 'truck stop' in name_lower or 'travel center' in name_lower or 'pilot' in name_lower or 'loves' in name_lower:
-        _process_truck_stops(reader, etl_job)
+    if 'hpms' in name_lower or 'highway_performance_monitoring_system' in name_lower:
+        _process_hpms(tracked_reader, etl_job)
+    elif 'truck stop' in name_lower or 'travel center' in name_lower or 'pilot' in name_lower or 'loves' in name_lower:
+        _process_truck_stops(tracked_reader, etl_job)
     elif 'wim' in name_lower:
-        _process_wim_stations(reader, etl_job)
+        _process_wim_stations(tracked_reader, etl_job)
     elif 'recycling' in name_lower or 'epa' in name_lower:
-        _process_recycling(reader, etl_job)
+        _process_recycling(tracked_reader, etl_job)
     elif 'carrier' in name_lower or 'company' in name_lower:
-        _process_carriers(reader, etl_job)
+        _process_carriers(tracked_reader, etl_job)
     elif 'stat' in name_lower:
-        _process_stats(reader, etl_job)
+        _process_stats(tracked_reader, etl_job)
     elif 'tire' in name_lower:
-        _process_tire_shops(reader, etl_job)
+        _process_tire_shops(tracked_reader, etl_job)
     elif 'fuel' in name_lower:
-        _process_alt_fuel(reader, etl_job)
+        _process_alt_fuel(tracked_reader, etl_job)
     elif 'enforcement' in name_lower or 'size' in name_lower:
-        _process_enforcement(reader, etl_job)
+        _process_enforcement(tracked_reader, etl_job)
     elif 'routes' in name_lower or 'nhs' in name_lower:
+        etl_job.records_processed = sum(1 for _ in tracked_reader)
         etl_job.error_log += f"Se detectaron y validaron rutas NHS en formato GeoJSON.\n"
     else:
+        etl_job.records_processed = sum(1 for _ in tracked_reader)
         etl_job.error_log += f"Lógica ETL para {etl_job.dataset.name} en desarrollo.\n"
+
+
+def _process_hpms(reader, etl_job):
+    reader_iter = iter(reader)
+    first_row = next(reader_iter, None)
+
+    if first_row is None:
+        etl_job.error_log += "HPMS: no se encontraron filas para procesar.\n"
+        return
+    header_tokens = {"".join(ch.lower() for ch in str(key) if ch.isalnum()) for key in first_row.keys()}
+    is_inventory_index = {"state", "apiurl", "mapurl"}.issubset(header_tokens)
+
+    if is_inventory_index:
+        result = RouteService.seed_hpms_sources_from_csv(etl_job.dataset.file_path, source_dataset=etl_job.dataset)
+        etl_job.records_processed = result["created"] + result["updated"]
+        etl_job.error_log += (
+            "HPMS: inventario maestro procesado. "
+            f"Fuentes creadas={result['created']}, actualizadas={result['updated']}, "
+            f"total={result['total_sources']}.\n"
+        )
+        return
+
+    state_name = None
+    file_name = os.path.splitext(os.path.basename(etl_job.dataset.file_path))[0].replace("_", " ").replace("-", " ")
+    for source in HPMSInventorySource.objects.all():
+        if source.state_name.lower() in file_name.lower():
+            state_name = source.state_name
+            break
+
+    source = HPMSInventorySource.objects.filter(state_name=state_name).first() if state_name else None
+    result = RouteService.import_hpms_segments(chain([first_row], reader_iter), source=source, default_state=state_name)
+    etl_job.records_processed = result["created"] + result["updated"]
+    etl_job.error_log += (
+        "HPMS: segmentos procesados. "
+        f"Creados={result['created']}, actualizados={result['updated']}, "
+        f"snapshots={result['snapshots']}.\n"
+    )
 
 def _process_truck_stops(reader, etl_job):
     """
@@ -117,6 +192,7 @@ def _process_truck_stops(reader, etl_job):
     Maneja polimorfismo de columnas (NTAD, Locmaster, Love's, Pilot).
     """
     created_count = 0
+    processed_count = 0
     
     for row in reader:
         # 1. Identificar columnas de Nombre y Operador (Polimorfismo)
@@ -289,9 +365,11 @@ def _process_truck_stops(reader, etl_job):
         if amenities_to_add:
             stop.amenities.add(*amenities_to_add)
             
+        processed_count += 1
         if created:
             created_count += 1
-            
+    
+    etl_job.records_processed = processed_count
     etl_job.error_log += f"Se procesaron e importaron {created_count} Truck Stops (detectando automáticamente las columnas).\n"
 
 def _process_wim_stations(reader, etl_job):
@@ -335,12 +413,16 @@ def _process_wim_stations(reader, etl_job):
         wim.amenities.add(wim_amenity)
         count += 1
 
+    etl_job.records_processed = count
     etl_job.error_log += f"Se procesaron {count} estaciones WIM para Vehículos Clase 8.\n"
     if filtered_count > 0:
         etl_job.error_log += f"Se descartaron {filtered_count} registros por no ser Clase 8.\n"
 
 def _process_recycling(reader, etl_job):
     created_count = 0
+    processed_count = 0
+    progress_log_interval = 1000
+    next_progress_checkpoint = progress_log_interval
     for row in reader:
         # Coordenadas polimórficas (Priorizar Latitude/Longitude sobre y/x)
         lat = row.get('Latitude') or row.get('latitude') or row.get('Lat') or row.get('LATITUDE') or row.get('y')
@@ -423,7 +505,9 @@ def _process_recycling(reader, etl_job):
                             'population_served': population
                         }
                     )
-                    created_count += 1
+                    processed_count += 1
+                    if created:
+                        created_count += 1
                 except Exception as e:
                     print("Error saving EPA:", e)
                     pass
@@ -441,17 +525,29 @@ def _process_recycling(reader, etl_job):
                         'population_served': population
                     }
                 )
+                processed_count += 1
                 if created:
                     created_count += 1
             except Exception as e:
                 pass
+
+        if processed_count >= next_progress_checkpoint:
+            etl_job.records_processed = processed_count
+            etl_job.error_log += (
+                f"Recycling: avance parcial {processed_count} registros procesados.\n"
+            )
+            etl_job.save(update_fields=['records_processed', 'error_log'])
+            next_progress_checkpoint += progress_log_interval
         
+    etl_job.records_processed = processed_count
     etl_job.error_log += f"Se importaron {created_count} plantas de reciclaje de llantas.\n"
 
 def _process_carriers(reader, etl_job):
     created_count = 0
     batch_size = 10000
     batch = []
+    progress_log_interval = 50000
+    next_progress_checkpoint = progress_log_interval
     
     for row in reader:
         dot_num = row.get('DOT_NUMBER')
@@ -475,6 +571,13 @@ def _process_carriers(reader, etl_job):
                 update_fields=['legal_name', 'dba_name', 'carrier_operation', 'status']
             )
             created_count += len(batch)
+            etl_job.records_processed = created_count
+            if created_count >= next_progress_checkpoint:
+                etl_job.error_log += (
+                    f"Carriers: avance parcial {created_count} registros procesados.\n"
+                )
+                next_progress_checkpoint += progress_log_interval
+            etl_job.save(update_fields=['records_processed', 'error_log'])
             batch = []
 
     # Insertar el remanente
@@ -487,6 +590,8 @@ def _process_carriers(reader, etl_job):
             update_fields=['legal_name', 'dba_name', 'carrier_operation', 'status']
         )
         created_count += len(batch)
+
+    etl_job.records_processed = created_count
         
     etl_job.error_log += f"Se importaron {created_count} empresas transportistas (Carriers) usando procesamiento masivo por lotes.\n"
 
@@ -533,6 +638,7 @@ def _process_stats(reader, etl_job):
         except Exception:
             continue
 
+    etl_job.records_processed = created_count
     etl_job.error_log += f"Se importaron {created_count} meses de estadísticas de transporte relevantes para Clase 8.\n"
 
 def _process_enforcement(reader, etl_job):
@@ -570,6 +676,7 @@ def _process_enforcement(reader, etl_job):
         except (ValueError, TypeError):
             continue
             
+    etl_job.records_processed = created_count
     etl_job.error_log += f"Se importaron {created_count} registros anuales de control y pesaje por Estado.\n"
 
 def _process_tire_shops(reader, etl_job):
@@ -611,6 +718,7 @@ def _process_tire_shops(reader, etl_job):
             }
         )
         created_count += 1
+    etl_job.records_processed = created_count
     etl_job.error_log += f"Se importaron {created_count} talleres de llantas.\n"
 
 def _process_alt_fuel(reader, etl_job):
@@ -680,4 +788,5 @@ def _process_alt_fuel(reader, etl_job):
             station.amenities.add(*amenities_to_add)
 
         created_count += 1
+    etl_job.records_processed = created_count
     etl_job.error_log += f"Se importaron {created_count} estaciones de combustible alternativo (Exclusivas para Tractomulas / HD).\n"

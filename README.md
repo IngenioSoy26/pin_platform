@@ -1,42 +1,48 @@
 # PIN Platform
 
-Plataforma web IoT + Big Data para monitoreo de tractomulas, llantas, cumplimiento HOS, peso vehicular, rutas y servicios de apoyo en EE.UU.
+Plataforma web IoT + Big Data para monitoreo de tractomulas, llantas, cumplimiento HOS, peso vehicular, rutas, amenidades operativas y analitica aplicada al transporte de carga en EE.UU.
 
-## Estado actual
+## Resumen
 
-Este repositorio se encuentra en una etapa avanzada de desarrollo (Fase 11 - Dashboards y Simuladores), incluyendo:
-- Estructura completa de carpetas y aplicaciones modulares
-- Interfaz gráfica moderna (UI/UX) con diseño Glassmorphism y temas Claro/Oscuro
-- Dashboards interactivos con Plotly.js y mapas geoespaciales en tiempo real (Leaflet + CartoDB)
-- Simulador IoT (Digital Twin) en tiempo real para telemetría de llantas (Presión, Temperatura y Desgaste FMCSA)
-- Copiloto Inteligente PIN-AI integrado
-- Informe arquitectónico de Base de Datos y Diagrama ERD
+PIN Platform integra cuatro dominios principales:
 
-## Alcance del sistema final
+- telemetria IoT para tractomulas y sensores de llantas;
+- cumplimiento normativo HOS, peso y seguridad operacional;
+- capa geoespacial para rutas, rugosidad, clima, cierres y servicios;
+- analitica descriptiva y predictiva para soporte a decisiones.
 
-La meta final del proyecto incluye:
-- ETL para 14 datasets en `dataset/`
-- Monitoreo IoT de 18 llantas por tractomula (Desgaste, Presión, Temperatura)
-- Reglas HOS (FMCSA) y monitoreo de peso vehicular (WIM)
-- Motor de alertas predictivas y recomendaciones (PIN-AI)
-- Dashboards y API REST
-- Modelos predictivos y simulador IoT (Live Sync)
+El proyecto ya cuenta con una base funcional amplia: ETL con seguimiento de progreso, dashboards web, mapas live, capas geoespaciales tematicas, API de ingesta IoT y modelos analiticos base. Aun requiere cierre documental y validacion formal de algunos componentes para considerarse entregable final.
 
-## Requisitos sugeridos
+## Estado actual del repositorio
 
-- Python 3.11 o superior
-- pip actualizado
-- PostgreSQL + PostGIS para fases posteriores
-- Redis para Channels y Celery en fases posteriores
+Estado estimado respecto al plan maestro:
 
-## Importante sobre el entorno
+- `Fases 1-8`: implementadas en buena parte y operativas.
+- `Fase 9`: implementada a nivel estructural, pendiente de validacion formal de entrenamiento y metricas.
+- `Fase 10`: parcialmente implementada con demo/live sync y logica sintetica; requiere cierre formal del simulador extremo a extremo.
+- `Fases 11-12`: muy avanzadas y activamente usadas.
+- `Fase 13`: parcial, con APIs utiles pero sin cierre documental unificado.
+- `Fases 14-15`: incompletas como paquete final de entrega.
 
-- Si activas `.venv`, usa `python` y `python -m pip`, no `py`.
-- En tu equipo, `py` apunta a Python `3.14`, y varias librerias cientificas del sistema final no estan listas para esa ruta en Windows.
-- Para la Fase 1 usa `requirements.txt`.
-- Para las fases con ETL, GIS y ML usa `requirements-full.txt`, idealmente con Python `3.12`.
+## Documentacion principal
 
-## Puesta en marcha
+La documentacion entregable del proyecto se encuentra en `docs/`:
+
+- `MANUAL_INSTALACION_LOCAL.md` (instalacion local paso a paso)
+- `MEMORIA_FINAL_PRESENTACION.md` (documento principal)
+- `INFORME_BASE_DATOS.md` (soporte del modelo de datos)
+- `FUENTES_DATASETS.md` (portales y citacion)
+- `ANEXO_E_TABLA_DATASETS.md` (tabla consolidada por archivo)
+
+## Requisitos recomendados
+
+- Python `3.11` o `3.12`
+- `pip` actualizado
+- SQLite para arranque rapido
+- PostgreSQL + PostGIS para despliegue geoespacial completo
+- Redis/Celery/Channels si se desea evolucionar a tiempo real distribuido
+
+## Puesta en marcha rapida
 
 ```bash
 python -m venv .venv
@@ -48,16 +54,15 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-## Stack completo mas adelante
-
-```bash
-python -m pip install -r requirements-full.txt
-```
-
 ## Configuracion de base de datos
 
-En Fase 1 el archivo `.env` deja `DB_ENGINE=sqlite` para que el arranque inicial sea sencillo.
-Cuando empecemos la capa geoespacial y los modelos con `PointField`, cambia a:
+Configuracion minima:
+
+```env
+DB_ENGINE=sqlite
+```
+
+Configuracion recomendada para geoespacial:
 
 ```env
 DB_ENGINE=postgis
@@ -69,13 +74,21 @@ DB_HOST=localhost
 DB_PORT=5432
 ```
 
-## Datasets disponibles
+## Endpoints y vistas relevantes
 
-Los 14 archivos fuente se encuentran en `dataset/` y se incorporarán en la fase de ingesta de datos.
+- `http://localhost:8000/dashboard/`
+- `http://localhost:8000/map/`
+- `http://localhost:8000/dashboards/resumen/`
+- `http://localhost:8000/dashboards/iot/`
+- `http://localhost:8000/dashboards/geoespacial/`
+- `http://localhost:8000/configuracion/`
+- `http://localhost:8000/api/iot/reading/`
+- `http://localhost:8000/routes/hpms/roughness-geojson/`
 
-## Siguientes fases
+## Pendientes para cierre entregable
 
-1. Modelos base y utilidades compartidas
-2. Ingesta y normalizacion de datasets
-3. Modelado IoT, HOS y peso
-4. API, dashboards, analitica y simulacion
+- consolidar documentacion final y checklist de aceptacion;
+- validar entrenamiento real de modelos ML;
+- cerrar estrategia de simulacion end-to-end;
+- fortalecer APIs unificadas y documentacion OpenAPI;
+- completar migracion geoespacial real a PostGIS donde aplique.

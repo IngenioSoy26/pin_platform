@@ -186,6 +186,49 @@
         .kpi-grid { grid-template-columns: 1fr !important; }
         .master-header { flex-direction: column !important; align-items: flex-start !important; gap: 1rem !important; }
     }
+
+    .fleet-live-label.leaflet-tooltip {
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(56, 189, 248, 0.45);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(2, 8, 23, 0.45);
+        color: #e2e8f0;
+        padding: 0;
+    }
+
+    .fleet-live-label.leaflet-tooltip-top:before {
+        border-top-color: rgba(56, 189, 248, 0.45);
+    }
+
+    .fleet-live-label-content {
+        padding: 10px 12px;
+        min-width: 180px;
+    }
+
+    .fleet-live-label-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 800;
+        color: #f8fafc;
+    }
+
+    .fleet-live-label-badge {
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+    }
+
+    .fleet-live-label-meta {
+        font-size: 11px;
+        color: #cbd5e1;
+        line-height: 1.45;
+    }
 </style>
 
 <div class="master-container">
@@ -327,16 +370,71 @@
         maxZoom: 19
     }).addTo(map);
 
-    const trucksList = JSON.parse(document.getElementById('trucks-map-data').textContent);
-    const bounds = [];
+    const urlParams = new URLSearchParams(window.location.search);
+    const demoMode = urlParams.get('demo') !== '0';
+    const truckLayer = L.layerGroup().addTo(map);
+    const routeLayer = L.layerGroup().addTo(map);
+    const traveledLayer = L.layerGroup().addTo(map);
+    const markersByPlate = new Map();
+    let selectedPlate = null;
+    let demoRoutesById = {};
 
-    trucksList.forEach(truck => {
-        const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
-        const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
-        const statusText = truck.status === 'ACTIVE' ? 'ACTIVO' : (truck.status === 'MAINTENANCE' ? 'MANTENIMIENTO' : 'INACTIVO');
+    function buildLiveUrl() {
+        const params = new URLSearchParams();
+        if (demoMode) {
+            params.set('demo', '1');
+        }
+        return `/api/dashboards/resumen/live/?${params.toString()}`;
+    }
+
+    function buildDemoRoutesUrl() {
+        return '/api/routes/demo/';
+    }
+
+    function updateKPI(id, newVal) {
+        const el = document.getElementById(id);
+        if (el && el.innerText !== String(newVal)) {
+            el.style.opacity = 0;
+            setTimeout(() => {
+                el.innerText = newVal;
+                el.style.opacity = 1;
+            }, 300);
+        }
+    }
+
+    async function ensureDemoRoutesLoaded() {
+        if (!demoMode) {
+            return;
+        }
+        if (Object.keys(demoRoutesById).length > 0) {
+            return;
+        }
+        const response = await fetch(buildDemoRoutesUrl());
+        const payload = await response.json();
+        const routes = payload.routes || [];
+        demoRoutesById = {};
+        routes.forEach(route => {
+            if (route && route.id) {
+                demoRoutesById[route.id] = route;
+            }
+        });
+    }
+
+    function statusStyles(truck) {
+        const status = truck.status;
+        if (status === 'ACTIVE') {
+            return { statusColor: '#10b981', bgGlow: 'rgba(16, 185, 129, 0.2)', statusText: 'ACTIVO' };
+        }
+        if (status === 'MAINTENANCE') {
+            return { statusColor: '#f59e0b', bgGlow: 'rgba(245, 158, 11, 0.2)', statusText: 'MANTENIMIENTO' };
+        }
+        return { statusColor: '#ef4444', bgGlow: 'rgba(239, 68, 68, 0.2)', statusText: 'INACTIVO' };
+    }
+
+    function makeTruckIcon(truck) {
+        const { statusColor, bgGlow } = statusStyles(truck);
         const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
-        
-        const truckIcon = L.divIcon({
+        return L.divIcon({
             className: 'custom-truck-marker',
             html: `<div class="${pulseClass}" style="background: ${bgGlow}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid ${statusColor}; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);">
                      <i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 12px;"></i>
@@ -344,93 +442,229 @@
             iconSize: [28, 28],
             iconAnchor: [14, 14]
         });
+    }
 
-        const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
-        marker.bindPopup(`
+    function clamp(value, min, max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    function haversineMiles(a, b) {
+        const toRad = deg => (deg * Math.PI) / 180;
+        const earthRadiusMiles = 3958.8;
+        const lat1 = a[0];
+        const lon1 = a[1];
+        const lat2 = b[0];
+        const lon2 = b[1];
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+        const sinLat = Math.sin(dLat / 2);
+        const sinLon = Math.sin(dLon / 2);
+        const aa = sinLat * sinLat + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * sinLon * sinLon;
+        const c = 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1 - aa));
+        return earthRadiusMiles * c;
+    }
+
+    function estimateRouteDistanceMiles(route, routePos) {
+        if (!route || !route.coords || route.coords.length < 2) {
+            return 0;
+        }
+        const maxIndex = route.coords.length - 2;
+        const pos = clamp(typeof routePos === 'number' ? routePos : 0, 0, maxIndex);
+        const i = Math.floor(pos);
+        const frac = pos - i;
+        let total = 0;
+
+        for (let idx = 0; idx < i; idx++) {
+            total += haversineMiles(route.coords[idx], route.coords[idx + 1]);
+        }
+
+        const start = route.coords[i];
+        const end = route.coords[i + 1];
+        if (start && end) {
+            total += haversineMiles(start, end) * frac;
+        }
+
+        return total;
+    }
+
+    function buildTruckLabel(truck) {
+        const route = demoRoutesById[truck.route_id];
+        const { statusColor, statusText } = statusStyles(truck);
+        const distanceMiles = truck.is_demo ? estimateRouteDistanceMiles(route, truck.route_pos) : 0;
+        const routeName = truck.route_name || 'Ruta no asignada';
+        const distanceText = truck.is_demo ? `${distanceMiles.toFixed(1)} mi recorridas` : 'Telemetría en vivo';
+
+        return `
+            <div class="fleet-live-label-content">
+                <div class="fleet-live-label-title">
+                    <span>${truck.plate}</span>
+                    <span class="fleet-live-label-badge" style="background:${statusColor}22;color:${statusColor};">${statusText}</span>
+                </div>
+                <div class="fleet-live-label-meta">
+                    <div><strong>Ruta:</strong> ${routeName}</div>
+                    <div><strong>Avance:</strong> ${distanceText}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    function buildTraveledCoords(route, routePos) {
+        if (!route || !route.coords || route.coords.length < 2) {
+            return [];
+        }
+        const maxIndex = route.coords.length - 2;
+        const pos = clamp(typeof routePos === 'number' ? routePos : 0, 0, maxIndex);
+        const i = Math.floor(pos);
+        const frac = pos - i;
+        const traveled = route.coords.slice(0, i + 1);
+        const a = route.coords[i];
+        const b = route.coords[i + 1];
+        const lat = a[0] + (b[0] - a[0]) * frac;
+        const lon = a[1] + (b[1] - a[1]) * frac;
+        traveled.push([lat, lon]);
+        return traveled;
+    }
+
+    function renderSelectedRoute(truck) {
+        routeLayer.clearLayers();
+        traveledLayer.clearLayers();
+        if (!demoMode || !truck || !truck.route_id) {
+            return;
+        }
+        const route = demoRoutesById[truck.route_id];
+        if (!route || !route.coords || route.coords.length < 2) {
+            return;
+        }
+        routeLayer.addLayer(L.polyline(route.coords, { color: '#38bdf8', weight: 2, opacity: 0.25 }));
+        const traveledCoords = buildTraveledCoords(route, truck.route_pos);
+        if (traveledCoords.length >= 2) {
+            traveledLayer.addLayer(L.polyline(traveledCoords, { color: '#f59e0b', weight: 4, opacity: 0.75 }));
+        }
+    }
+
+    function syncSelectedTruckLabel(truck) {
+        Array.from(markersByPlate.entries()).forEach(([plate, marker]) => {
+            if (plate === selectedPlate && truck) {
+                marker.unbindTooltip();
+                marker.bindTooltip(buildTruckLabel(truck), {
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -18],
+                    opacity: 1,
+                    className: 'fleet-live-label',
+                });
+                marker.openTooltip();
+                return;
+            }
+            marker.unbindTooltip();
+        });
+    }
+
+    function upsertTruckMarker(truck) {
+        if (!truck || !truck.plate || !truck.lat || !truck.lon) {
+            return;
+        }
+        const { statusColor, statusText } = statusStyles(truck);
+        const icon = makeTruckIcon(truck);
+        const routeHtml = truck.route_name ? `<p style="margin: 6px 0 0 0; font-size: 11px; color: #64748b;"><strong>Ruta:</strong> ${truck.route_name}</p>` : '';
+        const popup = `
             <div style="text-align: center; padding: 5px;">
                 <h6 style="margin:0 0 5px 0; font-weight: 800; font-size: 14px; color: #1e293b;">${truck.plate}</h6>
                 <p style="margin:0; font-size: 12px; color: #64748b;">${truck.brand}</p>
+                ${truck.is_demo ? routeHtml : ''}
                 <div style="margin-top: 8px; background: ${statusColor}22; color: ${statusColor}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
                     ${statusText}
                 </div>
             </div>
-        `);
-        bounds.push([truck.lat, truck.lon]);
-    });
+        `;
 
-    if(bounds.length > 0) {
-        map.fitBounds(bounds, {padding: [50, 50]});
+        if (markersByPlate.has(truck.plate)) {
+            const marker = markersByPlate.get(truck.plate);
+            marker.setLatLng([truck.lat, truck.lon]);
+            marker.setIcon(icon);
+            marker.setPopupContent(popup);
+            return;
+        }
+
+        const marker = L.marker([truck.lat, truck.lon], { icon }).addTo(truckLayer);
+        marker.bindPopup(popup);
+        marker.on('click', async () => {
+            selectedPlate = truck.plate;
+            await ensureDemoRoutesLoaded();
+            renderSelectedRoute(truck);
+            syncSelectedTruckLabel(truck);
+        });
+        markersByPlate.set(truck.plate, marker);
     }
+
+    function syncTruckMarkers(trucks) {
+        const seen = new Set();
+        (trucks || []).forEach(truck => {
+            if (!truck || !truck.plate) {
+                return;
+            }
+            seen.add(truck.plate);
+            upsertTruckMarker(truck);
+        });
+        Array.from(markersByPlate.keys()).forEach(plate => {
+            if (seen.has(plate)) {
+                return;
+            }
+            const marker = markersByPlate.get(plate);
+            if (marker) {
+                truckLayer.removeLayer(marker);
+            }
+            markersByPlate.delete(plate);
+        });
+    }
+
+    function fitMapToFleet(trucks) {
+        const points = (trucks || [])
+            .filter(truck => truck && truck.lat != null && truck.lon != null)
+            .map(truck => [truck.lat, truck.lon]);
+        if (points.length > 0) {
+            map.fitBounds(points, { padding: [40, 40], maxZoom: 6 });
+        }
+    }
+
+    async function syncFromLive() {
+        const response = await fetch(buildLiveUrl());
+        const data = await response.json();
+
+        updateKPI('kpi-res-total', data.total_trucks);
+        updateKPI('kpi-res-hos', data.recent_hos_alerts);
+
+        const trucks = data.trucks_map || [];
+        let c_active = 0, c_maint = 0, c_inact = 0;
+        trucks.forEach(t => {
+            if (t.status === 'ACTIVE') c_active++;
+            else if (t.status === 'MAINTENANCE') c_maint++;
+            else c_inact++;
+        });
+        Plotly.update('fleetStatusChart', { values: [[c_active, c_maint, c_inact]] });
+
+        syncTruckMarkers(trucks);
+        if (demoMode) {
+            await ensureDemoRoutesLoaded();
+        }
+        if (!selectedPlate && trucks.length > 0) {
+            selectedPlate = trucks[0].plate || null;
+            fitMapToFleet(trucks);
+        }
+        if (selectedPlate) {
+            const selected = trucks.find(t => t && t.plate === selectedPlate);
+            if (selected) {
+                renderSelectedRoute(selected);
+                syncSelectedTruckLabel(selected);
+            }
+        }
+    }
+
+    syncFromLive().catch(e => console.error('Auto-sync falló', e));
 
     // Función AJAX para simular Live Polling en el Resumen
     setInterval(function() {
-        fetch('/api/dashboards/resumen/live/')
-            .then(response => response.json())
-            .then(data => {
-                // Actualizar KPIs superiores (Animación suave)
-                const updateKPI = (id, newVal) => {
-                    const el = document.getElementById(id);
-                    if (el && el.innerText !== newVal.toString()) {
-                        el.style.opacity = 0;
-                        setTimeout(() => {
-                            el.innerText = newVal;
-                            el.style.opacity = 1;
-                        }, 300);
-                    }
-                };
-                updateKPI('kpi-res-total', data.total_trucks);
-                updateKPI('kpi-res-hos', data.recent_hos_alerts);
-                
-                // Extraer el conteo de activos, mantenimiento e inactivos de trucks_map
-                let c_active = 0, c_maint = 0, c_inact = 0;
-                data.trucks_map.forEach(t => {
-                    if(t.status === 'ACTIVE') c_active++;
-                    else if(t.status === 'MAINTENANCE') c_maint++;
-                    else c_inact++;
-                });
-
-                // Actualizar Gráfico Plotly
-                Plotly.update('fleetStatusChart', {
-                    values: [[c_active, c_maint, c_inact]]
-                });
-
-                // Actualizar el mapa
-                map.eachLayer((layer) => {
-                    if (layer instanceof L.Marker) {
-                        map.removeLayer(layer);
-                    }
-                });
-                
-                data.trucks_map.forEach(truck => {
-                    if (truck.lat && truck.lon) {
-                        const statusColor = truck.status === 'ACTIVE' ? '#10b981' : (truck.status === 'MAINTENANCE' ? '#f59e0b' : '#ef4444');
-                        const bgGlow = truck.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.2)' : (truck.status === 'MAINTENANCE' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)');
-                        const statusText = truck.status === 'ACTIVE' ? 'ACTIVO' : (truck.status === 'MAINTENANCE' ? 'MANTENIMIENTO' : 'INACTIVO');
-                        const pulseClass = truck.status !== 'ACTIVE' ? 'pulse-animation' : '';
-                        
-                        const truckIcon = L.divIcon({
-                            className: 'custom-truck-marker',
-                            html: `<div class="${pulseClass}" style="background: ${bgGlow}; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid ${statusColor}; box-shadow: 0 0 15px ${statusColor}80; backdrop-filter: blur(4px);">
-                                     <i class="fa-solid fa-truck" style="color: ${statusColor}; font-size: 12px;"></i>
-                                   </div>`,
-                            iconSize: [28, 28],
-                            iconAnchor: [14, 14]
-                        });
-
-                        const marker = L.marker([truck.lat, truck.lon], {icon: truckIcon}).addTo(map);
-                        marker.bindPopup(`
-                            <div style="text-align: center; padding: 5px;">
-                                <h6 style="margin:0 0 5px 0; font-weight: 800; font-size: 14px; color: #1e293b;">${truck.plate}</h6>
-                                <p style="margin:0; font-size: 12px; color: #64748b;">${truck.brand}</p>
-                                <div style="margin-top: 8px; background: ${statusColor}22; color: ${statusColor}; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">
-                                    ${statusText}
-                                </div>
-                            </div>
-                        `);
-                    }
-                });
-            })
-            .catch(e => console.error("Auto-sync falló", e));
+        syncFromLive().catch(e => console.error("Auto-sync falló", e));
     }, 8000); // Refrescar cada 8 segundos
 
 </script>

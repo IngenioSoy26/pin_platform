@@ -1,5 +1,0 @@
-Encontrado: C:\Users\gusta\Desktop\Maestria\0.1. Practicas\pin_platform\media\datasets\2026\06\US_Recycling_Infrastructure_2022_-7015395891470271269.csv
-Logs:
-Iniciando procesamiento ETL nativo...
-Se importaron 15325 plantas de reciclaje de llantas.
-Procesamiento finalizado con éxito.

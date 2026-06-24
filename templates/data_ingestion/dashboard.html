@@ -3,6 +3,274 @@
 
 {% block content %}
 <div class="container-fluid mt-4">
+    <style>
+        .etl-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .etl-panel {
+            min-width: 0;
+        }
+
+        .etl-table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .etl-scroll {
+            max-height: 620px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .etl-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .etl-section-label {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+            padding: 0 0.25rem;
+        }
+
+        .etl-card-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.02);
+            min-width: 0;
+        }
+
+        .etl-card-row:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(56, 189, 248, 0.18);
+        }
+
+        .etl-card-main {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        .etl-card-side {
+            flex: 0 0 138px;
+            min-width: 138px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.55rem;
+        }
+
+        .etl-card-side-wide {
+            flex-basis: 170px;
+            min-width: 170px;
+        }
+
+        .etl-cell-clamp {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.35;
+            max-height: 2.7em;
+            word-break: break-word;
+            width: 100%;
+        }
+
+        .etl-date-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            line-height: 1.2;
+            white-space: normal;
+            align-items: flex-end;
+        }
+
+        .etl-date-main {
+            color: var(--text-primary);
+            font-size: 0.92rem;
+        }
+
+        .etl-date-sub {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+
+        .etl-status-wrap {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .etl-status-wrap .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            max-width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0.45rem 0.65rem;
+            font-size: 0.8rem;
+            line-height: 1;
+        }
+
+        .etl-header-row {
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .etl-source-name {
+            font-size: 0.98rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .etl-dataset-name {
+            font-size: 0.98rem;
+            line-height: 1.35;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .etl-meta-inline {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.55rem;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        .etl-meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+            white-space: nowrap;
+        }
+
+        .etl-meta-pill strong {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .etl-result-pill {
+            background: rgba(59, 130, 246, 0.12);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .etl-live-card {
+            display: none;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 14px;
+            border: 1px solid rgba(245, 158, 11, 0.22);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .etl-live-card.is-visible {
+            display: block;
+        }
+
+        .etl-live-title {
+            color: var(--text-primary);
+            font-size: 0.92rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+
+        .etl-live-subtitle {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            margin-bottom: 0.75rem;
+        }
+
+        .etl-live-metrics {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+        }
+
+        .etl-meta-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.45rem;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .etl-meta-label {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .etl-source-name {
+            font-size: 0.96rem;
+        }
+
+        .etl-dataset-name {
+            font-size: 0.95rem;
+            line-height: 1.35;
+        }
+
+        @media (max-width: 1200px) {
+            .etl-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .etl-scroll {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .etl-card-row {
+                flex-direction: column;
+                gap: 0.85rem;
+                padding: 0.9rem;
+            }
+
+            .etl-card-side,
+            .etl-card-side-wide {
+                flex: 1 1 auto;
+                min-width: 0;
+                width: 100%;
+                align-items: flex-start;
+            }
+
+            .etl-meta-stack,
+            .etl-date-stack,
+            .etl-status-wrap {
+                align-items: flex-start;
+                justify-content: flex-start;
+            }
+        }
+    </style>
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">        
         <h2 style="color: var(--text-primary); font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px;">     
@@ -13,8 +281,12 @@
                 <i class="fa-solid fa-cloud-arrow-up fs-5"></i> Subir Archivo
             </button>
             <input type="file" id="fileInput" style="display: none;" accept=".csv, .xlsx, .xls, .geojson">
-            <button id="runEtlBtn" type="button" class="btn btn-primary d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; padding: 0.5rem 1.5rem; font-weight: 600; font-size: 1rem; height: 48px;">
+            <button id="runEtlBtn" type="button" class="btn btn-primary d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; padding: 0.5rem 1.5rem; font-weight: 600; font-size: 1rem; height: 48px;" {% if is_etl_running %}disabled{% endif %}>
+                {% if is_etl_running %}
+                <i class="fa-solid fa-spinner fa-spin fs-5"></i> Procesando Archivos...
+                {% else %}
                 <i class="fa-solid fa-play fs-5"></i> Ejecutar ETL Automático
+                {% endif %}
             </button>
         </div>
     </div>
@@ -72,72 +344,81 @@
     </div>
 
     <!-- Main Content Grid -->
-    <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div class="etl-grid">
         
         <!-- Left Column: Datasets -->
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="etl-panel" style="display: flex; flex-direction: column; gap: 1.5rem;">
             <div class="glass-card p-4 h-100">
                 <h5 class="mb-4" style="color: var(--text-primary);"><i class="fa-solid fa-folder-open me-2 text-info"></i>Fuentes de Datos (DataSources)</h5>
                 
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover glass-table mb-0">
-                        <thead>
-                            <tr>
-                                <th style="color: var(--text-muted);">Nombre</th>
-                                <th style="color: var(--text-muted);">Tipo</th>
-                                <th style="color: var(--text-muted);">Última Carga</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for source in sources %}
-                            <tr>
-                                <td style="color: var(--text-primary);">{{ source.name }}</td>
-                                <td><span class="badge bg-secondary">{{ source.file_type }}</span></td>
-                                <td style="color: var(--text-muted);">
-                                    {% if source.last_load %}
-                                        {{ source.last_load|date:"d M Y, H:i" }}
-                                    {% else %}
-                                        <span class="text-warning">Nunca</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-4">No hay fuentes de datos registradas. Ejecuta el ETL o sube archivos a la carpeta 'data/'.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="etl-scroll">
+                    <div class="etl-list">
+                        <div class="etl-section-label">Nombre, tipo y ultima carga</div>
+                        {% for source in sources %}
+                        <div class="etl-card-row">
+                            <div class="etl-card-main" title="{{ source.name }}">
+                                <span class="etl-cell-clamp etl-source-name">{{ source.name }}</span>
+                                <div class="etl-meta-inline">
+                                    <span class="etl-meta-pill"><strong>Tipo</strong> {{ source.file_type }}</span>
+                                </div>
+                            </div>
+                            <div class="etl-card-side">
+                                {% if source.last_load %}
+                                    <span class="etl-date-stack" title="{{ source.last_load|date:'d M Y, H:i' }}">
+                                        <span class="etl-meta-label">Ultima carga</span>
+                                        <span class="etl-date-main">{{ source.last_load|date:"d M Y" }}</span>
+                                        <span class="etl-date-sub">{{ source.last_load|date:"H:i" }}</span>
+                                    </span>
+                                {% else %}
+                                    <span class="etl-meta-label">Ultima carga</span>
+                                    <span class="text-warning">Nunca</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="etl-card-row">
+                            <div class="text-center text-muted py-4">No hay fuentes de datos registradas. Ejecuta el ETL o sube archivos a la carpeta 'data/'.</div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Right Column: ETL Jobs History -->
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 1.5rem;">
+        <div class="etl-panel" style="display: flex; flex-direction: column; gap: 1.5rem;">
             <div class="glass-card p-4 h-100">
-                <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 etl-header-row">
                     <h5 style="color: var(--text-primary); margin: 0;"><i class="fa-solid fa-clock-rotate-left me-2 text-warning"></i>Historial de Trabajos ETL</h5>
                     <button class="btn btn-sm btn-outline-secondary" onclick="location.reload();"><i class="fa-solid fa-rotate-right"></i> Refrescar</button>
                 </div>
+                <p class="text-muted small mb-3">Mostrando los ultimos 20 trabajos ETL.</p>
+                <div id="etlLiveCard" class="etl-live-card" aria-live="polite">
+                    <div class="etl-live-title"><i class="fa-solid fa-spinner fa-spin me-2"></i>ETL en progreso</div>
+                    <div id="etlLiveSubtitle" class="etl-live-subtitle">Consultando estado del procesamiento...</div>
+                    <div class="etl-live-metrics">
+                        <span class="etl-meta-pill etl-result-pill"><strong>Procesados</strong> <span id="etlLiveProcessed">0</span></span>
+                        <span class="etl-meta-pill"><strong>Tiempo</strong> <span id="etlLiveElapsed">--</span></span>
+                        <span class="etl-meta-pill"><strong>Ritmo</strong> <span id="etlLiveRate">--</span></span>
+                    </div>
+                </div>
                 
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover glass-table mb-0">
-                        <thead>
-                            <tr>
-                                <th style="color: var(--text-muted);">Dataset</th>
-                                <th style="color: var(--text-muted);">Estado</th>
-                                <th style="color: var(--text-muted);">Iniciado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for job in recent_jobs %}
-                            <tr>
-                                <td style="color: var(--text-primary);">
-                                    <div class="text-truncate" style="max-width: 200px;" title="{{ job.dataset.name }}">
-                                        {{ job.dataset.name }}
-                                    </div>
-                                </td>
-                                <td>
+                <div class="etl-scroll">
+                    <div class="etl-list">
+                        <div class="etl-section-label">Dataset, estado e inicio</div>
+                        {% for job in recent_jobs %}
+                        <div class="etl-card-row">
+                            <div class="etl-card-main" title="{{ job.dataset.name }}">
+                                <div class="etl-cell-clamp etl-dataset-name">{{ job.dataset.name }}</div>
+                                <div class="etl-meta-inline">
+                                    <span class="etl-meta-pill"><strong>Hace</strong> {{ job.started_at|timesince }}</span>
+                                    <span class="etl-meta-pill etl-result-pill"><strong>Procesados</strong> {{ job.records_processed }}</span>
+                                </div>
+                            </div>
+                            <div class="etl-card-side etl-card-side-wide">
+                                <div class="etl-meta-stack">
+                                    <div class="etl-meta-label">Estado</div>
+                                    <span class="etl-status-wrap">
                                     {% if job.status == 'COMPLETED' %}
                                         <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">Completado</span>
                                     {% elif job.status == 'FAILED' %}
@@ -147,16 +428,23 @@
                                     {% else %}
                                         <span class="badge bg-secondary">Pendiente</span>
                                     {% endif %}
-                                </td>
-                                <td style="color: var(--text-muted);">{{ job.started_at|timesince }} ago</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="text-center text-muted py-4">No hay trabajos ETL recientes.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    </span>
+                                    <div>
+                                        <div class="etl-meta-label">Iniciado</div>
+                                        <span class="etl-date-stack" title="Hace {{ job.started_at|timesince }}">
+                                            <span class="etl-date-main">{{ job.started_at|date:"d M Y" }}</span>
+                                            <span class="etl-date-sub">{{ job.started_at|date:"H:i" }}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="etl-card-row">
+                            <div class="text-center text-muted py-4">No hay trabajos ETL recientes.</div>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
@@ -179,11 +467,135 @@
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const runBtn = document.getElementById('runEtlBtn');
+    const etlStatusUrl = "{% url 'data_ingestion:etl_status_api' %}";
+    const etlLiveCard = document.getElementById('etlLiveCard');
+    const etlLiveSubtitle = document.getElementById('etlLiveSubtitle');
+    const etlLiveProcessed = document.getElementById('etlLiveProcessed');
+    const etlLiveElapsed = document.getElementById('etlLiveElapsed');
+    const etlLiveRate = document.getElementById('etlLiveRate');
+    let etlPollingHandle = null;
+
+    function setRunButtonProcessing() {
+        runBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin fs-5"></i> Procesando Archivos...';
+        runBtn.disabled = true;
+    }
+
+    function setRunButtonIdle() {
+        runBtn.innerHTML = '<i class="fa-solid fa-play fs-5"></i> Ejecutar ETL Automático';
+        runBtn.disabled = false;
+    }
+
+    function showToast(type, message, useHtml = false) {
+        const toastEl = document.getElementById('etlToast');
+        const toastMsg = document.getElementById('toastMessage');
+        toastEl.classList.remove('bg-success', 'bg-danger', 'bg-info', 'bg-warning');
+        toastEl.classList.add(type);
+        if (useHtml) {
+            toastMsg.innerHTML = message;
+        } else {
+            toastMsg.innerText = message;
+        }
+
+        if (window.bootstrap && window.bootstrap.Toast) {
+            new window.bootstrap.Toast(toastEl).show();
+            return;
+        }
+
+        toastEl.style.display = 'block';
+        toastEl.classList.add('show');
+    }
+
+    function formatNumber(value) {
+        return new Intl.NumberFormat('es-ES').format(value || 0);
+    }
+
+    function formatElapsed(startedAt) {
+        if (!startedAt) {
+            return '--';
+        }
+
+        const elapsedSeconds = Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000));
+        const hours = Math.floor(elapsedSeconds / 3600);
+        const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+        const seconds = elapsedSeconds % 60;
+
+        if (hours > 0) {
+            return `${hours}h ${minutes}m`;
+        }
+        if (minutes > 0) {
+            return `${minutes}m ${seconds}s`;
+        }
+        return `${seconds}s`;
+    }
+
+    function updateLiveProgress(data) {
+        const latestJob = data.latest_job || {};
+        if (!data.is_running || !latestJob.dataset) {
+            etlLiveCard.classList.remove('is-visible');
+            return;
+        }
+
+        const processed = typeof latestJob.records_processed === 'number' ? latestJob.records_processed : 0;
+        const elapsedLabel = formatElapsed(latestJob.started_at);
+        const startedAtMs = latestJob.started_at ? new Date(latestJob.started_at).getTime() : null;
+        const elapsedSeconds = startedAtMs ? Math.max(1, Math.floor((Date.now() - startedAtMs) / 1000)) : 0;
+        const perMinute = elapsedSeconds ? Math.round((processed / elapsedSeconds) * 60) : 0;
+
+        etlLiveSubtitle.textContent = `Dataset actual: ${latestJob.dataset}. Estado: ${latestJob.status || 'RUNNING'}.`;
+        etlLiveProcessed.textContent = formatNumber(processed);
+        etlLiveElapsed.textContent = elapsedLabel;
+        etlLiveRate.textContent = perMinute > 0
+            ? `${formatNumber(perMinute)} regs/min`
+            : 'calculando...';
+        etlLiveCard.classList.add('is-visible');
+    }
+
+    function startEtlPolling() {
+        if (etlPollingHandle) {
+            return;
+        }
+
+        setRunButtonProcessing();
+        etlPollingHandle = window.setInterval(async () => {
+            try {
+                const response = await fetch(etlStatusUrl, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                // #region debug-point D:status-poll
+                fetch("http://127.0.0.1:7777/event",{method:"POST",body:JSON.stringify({sessionId:"etl-button-state",runId:"pre-fix",hypothesisId:"D",location:"templates/data_ingestion/dashboard.html:startEtlPolling","msg":"[DEBUG] etl_status_api poll completed","data":{"is_running":data.is_running,"running_jobs":data.running_jobs,"latest_status":data.latest_job?data.latest_job.status:null},"ts":Date.now()}),headers:{"Content-Type":"application/json"}}).catch(()=>{});
+                // #endregion
+
+                updateLiveProgress(data);
+                if (data.is_running) {
+                    setRunButtonProcessing();
+                    return;
+                }
+
+                window.clearInterval(etlPollingHandle);
+                etlPollingHandle = null;
+                const latestJob = data.latest_job || {};
+                const processedLabel = typeof latestJob.records_processed === 'number'
+                    ? ` Registros procesados: ${latestJob.records_processed}.`
+                    : '';
+                const datasetLabel = latestJob.dataset ? ` Dataset: ${latestJob.dataset}.` : '';
+                showToast('bg-success', `ETL finalizado.${processedLabel}${datasetLabel} Actualizando resultados...`);
+                setTimeout(() => location.reload(), 1200);
+            } catch (error) {
+                console.error('Error consultando estado ETL:', error);
+            }
+        }, 2500);
+    }
+
+    if ({% if is_etl_running %}true{% else %}false{% endif %}) {
+        startEtlPolling();
+    }
     
     runBtn.addEventListener('click', function() {
-        // Change button state
-        runBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Iniciando...';
-        runBtn.disabled = true;
+        // #region debug-point A:button-click
+        fetch("http://127.0.0.1:7777/event",{method:"POST",body:JSON.stringify({sessionId:"etl-button-state",runId:"pre-fix",hypothesisId:"A",location:"templates/data_ingestion/dashboard.html:runBtn.click","msg":"[DEBUG] ETL button clicked","data":{"disabled_before":runBtn.disabled},"ts":Date.now()}),headers:{"Content-Type":"application/json"}}).catch(()=>{});
+        // #endregion
+        setRunButtonProcessing();
         
         fetch("{% url 'data_ingestion:run_etl_api' %}", {
             method: 'POST',
@@ -194,29 +606,24 @@ document.addEventListener("DOMContentLoaded", function() {
         })
         .then(response => response.json())
         .then(data => {
-            const toastEl = document.getElementById('etlToast');
-            const toastMsg = document.getElementById('toastMessage');
-            
+            // #region debug-point C:run-etl-response
+            fetch("http://127.0.0.1:7777/event",{method:"POST",body:JSON.stringify({sessionId:"etl-button-state",runId:"pre-fix",hypothesisId:"C",location:"templates/data_ingestion/dashboard.html:runBtn.then","msg":"[DEBUG] run_etl_api fetch resolved","data":{"status":data.status,"message":data.message},"ts":Date.now()}),headers:{"Content-Type":"application/json"}}).catch(()=>{});
+            // #endregion
             if(data.status === 'success') {
-                toastEl.classList.replace('bg-danger', 'bg-success');
-                toastMsg.innerText = data.message;
+                showToast('bg-success', data.message);
+                startEtlPolling();
             } else {
-                toastEl.classList.replace('bg-success', 'bg-danger');
-                toastMsg.innerText = "Error: " + data.message;
+                showToast('bg-danger', "Error: " + data.message);
+                setRunButtonIdle();
             }
-            
-            const toast = new bootstrap.Toast(toastEl);
-            toast.show();
-            
-            // Reload page after 3 seconds to show 'RUNNING' status
-            setTimeout(() => {
-                location.reload();
-            }, 3000);
         })
         .catch(error => {
+            // #region debug-point C:run-etl-fetch-error
+            fetch("http://127.0.0.1:7777/event",{method:"POST",body:JSON.stringify({sessionId:"etl-button-state",runId:"pre-fix",hypothesisId:"C",location:"templates/data_ingestion/dashboard.html:runBtn.catch","msg":"[DEBUG] run_etl_api fetch failed","data":{"error":String(error)},"ts":Date.now()}),headers:{"Content-Type":"application/json"}}).catch(()=>{});
+            // #endregion
             console.error('Error:', error);
-            runBtn.innerHTML = '<i class="fa-solid fa-play"></i> Ejecutar ETL Automático';
-            runBtn.disabled = false;
+            showToast('bg-danger', 'Error de conexión iniciando el ETL.');
+            setRunButtonIdle();
         });
     });
 
@@ -229,14 +636,8 @@ document.addEventListener("DOMContentLoaded", function() {
         const formData = new FormData();
         formData.append('file', file);
         
-        const toastEl = document.getElementById('etlToast');
-        const toastMsg = document.getElementById('toastMessage');
-        
         // Show uploading toast
-        toastEl.classList.remove('bg-success', 'bg-danger');
-        toastEl.classList.add('bg-info');
-        toastMsg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Subiendo archivo...';
-        new bootstrap.Toast(toastEl).show();
+        showToast('bg-info', '<i class="fa-solid fa-spinner fa-spin"></i> Subiendo archivo...', true);
         
         fetch("{% url 'data_ingestion:upload_dataset_api' %}", {
             method: 'POST',
@@ -248,18 +649,15 @@ document.addEventListener("DOMContentLoaded", function() {
         .then(response => response.json())
         .then(data => {
             if(data.status === 'success') {
-                toastEl.classList.replace('bg-info', 'bg-success');
-                toastMsg.innerText = data.message;
+                showToast('bg-success', data.message);
                 // Reload after upload to potentially show it if we add a 'Files in data/' list
                 setTimeout(() => location.reload(), 2000);
             } else {
-                toastEl.classList.replace('bg-info', 'bg-danger');
-                toastMsg.innerText = "Error: " + data.message;
+                showToast('bg-danger', "Error: " + data.message);
             }
         })
         .catch(error => {
-            toastEl.classList.replace('bg-info', 'bg-danger');
-            toastMsg.innerText = "Error de conexión al subir.";
+            showToast('bg-danger', "Error de conexión al subir.");
         });
         
         // Reset input

@@ -1,194 +1,343 @@
+from pathlib import Path
 import json
-from django.shortcuts import render
+import time
+
+from django.conf import settings
 from django.http import JsonResponse
-from apps.core.models import TruckStop, WIMStation, TireShop, AlternativeFuelStation, RecyclingFacility
+from django.shortcuts import render
+
+from apps.core.models import (
+    AlternativeFuelStation,
+    RecyclingFacility,
+    TireShop,
+    TruckStop,
+    WIMStation,
+)
 from apps.data_ingestion.models import DataSource
 from apps.devices.models import Truck
 from apps.hos_monitoring.models import HOSAlert
 from apps.weight_monitoring.models import WeightInspection
 
-from django.core.management import call_command
-import random
-from django.utils import timezone
-from datetime import timedelta
+_DEMO_ROUTES_CACHE = {
+    "mtime": None,
+    "routes": None,
+}
 
-def simulate_live_tick():
-    """Función para mutar aleatoriamente los datos y dar efecto 'En Vivo'."""
-    trucks = list(Truck.objects.filter(latitude__isnull=False, longitude__isnull=False))
-    if not trucks:
-        return
-        
-    # Simular movimiento físico y telemetría
-    for t in trucks:
-        # === MOVIMIENTO FÍSICO ===
-        if t.status == 'ACTIVE' and t.latitude and t.longitude:
-            # Si está activo, moverlo de forma visible en el mapa (aprox 0.1 a 0.3 grados, que es bastante para notarlo)
-            lat_move = random.uniform(-0.15, 0.15)
-            lon_move = random.uniform(-0.15, 0.15)
-            
-            # Actualizar coordenadas y guardarlas
-            t.latitude = float(t.latitude) + lat_move
-            t.longitude = float(t.longitude) + lon_move
-        elif t.status == 'MAINTENANCE' and t.latitude and t.longitude:
-            # Si está en mantenimiento, se mueve mucho más lento
-            lat_move = random.uniform(-0.02, 0.02)
-            lon_move = random.uniform(-0.02, 0.02)
-            t.latitude = float(t.latitude) + lat_move
-            t.longitude = float(t.longitude) + lon_move
-        # Si es INACTIVE, no se mueve (0 movimiento)
-        
-        # 5% de probabilidad de cambiar estado (Sanar o Dañarse)
-        if random.random() < 0.05:
-            states = ['ACTIVE', 'ACTIVE', 'ACTIVE', 'MAINTENANCE', 'INACTIVE']
-            t.status = random.choice(states)
-            
-        t.save()
-        
-    # Crear una nueva alerta aleatoria a veces (10% prob)
-    if random.random() < 0.1:
-        bad_truck = random.choice(trucks)
-        
-        # 50% HOS Alert, 50% Weight Inspection
-        if random.random() > 0.5:
-            from apps.hos_monitoring.models import Driver
-            driver = Driver.objects.filter(status='ACTIVE').first()
-            if driver:
-                HOSAlert.objects.create(
-                    driver=driver,
-                    title="[SIMULADO EN VIVO] Nueva Infracción",
-                    alert_type=random.choice(['VIOLATION_11H', 'VIOLATION_14H', 'VIOLATION_60_70H']),
-                    severity='VIOLATION',
-                    message=f"Alerta generada en tiempo real para {bad_truck.plate}.",
-                    current_value=11.5,
-                    threshold_value=11.0,
-                    status='ACTIVE'
-                )
+
+def _iter_geojson_features(file_path, max_features=None):
+    decoder = json.JSONDecoder()
+    buffer = ""
+    with open(file_path, "r", encoding="utf-8", errors="replace") as fh:
+        while True:
+            chunk = fh.read(1024 * 1024)
+            if not chunk:
+                return
+            buffer += chunk
+            idx = buffer.find('"features"')
+            if idx != -1:
+                buffer = buffer[idx:]
+                break
+
+        start = buffer.find("[")
+        while start == -1:
+            chunk = fh.read(1024 * 1024)
+            if not chunk:
+                return
+            buffer += chunk
+            start = buffer.find("[")
+
+        buffer = buffer[start + 1 :]
+        yielded = 0
+
+        while True:
+            buffer = buffer.lstrip(" \t\r\n,")
+            if buffer.startswith("]"):
+                return
+
+            try:
+                feature, end = decoder.raw_decode(buffer)
+            except json.JSONDecodeError:
+                chunk = fh.read(1024 * 1024)
+                if not chunk:
+                    return
+                buffer += chunk
+                continue
+
+            buffer = buffer[end:]
+            yielded += 1
+            yield feature
+            if max_features and yielded >= max_features:
+                return
+
+
+def _extract_latlon_points(geometry):
+    if not geometry:
+        return []
+
+    geom_type = geometry.get("type")
+    coords = geometry.get("coordinates")
+
+    if geom_type == "LineString" and isinstance(coords, list):
+        sequences = [coords]
+    elif geom_type == "MultiLineString" and isinstance(coords, list):
+        sequences = coords
+    else:
+        return []
+
+    points = []
+    last = None
+    for seq in sequences:
+        if not isinstance(seq, list):
+            continue
+        for item in seq:
+            if not isinstance(item, (list, tuple)) or len(item) < 2:
+                continue
+            lon, lat = item[0], item[1]
+            try:
+                lat = float(lat)
+                lon = float(lon)
+            except (TypeError, ValueError):
+                continue
+
+            current = (lat, lon)
+            if last is not None and current == last:
+                continue
+            last = current
+            points.append([lat, lon])
+
+    return points
+
+
+def _downsample_points(points, max_points=500):
+    if len(points) <= max_points:
+        return points
+    step = max(1, int(len(points) / max_points))
+    sampled = points[::step]
+    if sampled[-1] != points[-1]:
+        sampled.append(points[-1])
+    return sampled
+
+
+def _load_demo_routes(limit=10):
+    dataset = DataSource.objects.filter(file_type="GEOJSON").order_by("-last_load").first()
+    if not dataset or not dataset.file_path or not Path(dataset.file_path).exists():
+        return []
+
+    mtime = Path(dataset.file_path).stat().st_mtime
+    if _DEMO_ROUTES_CACHE["routes"] is not None and _DEMO_ROUTES_CACHE["mtime"] == mtime:
+        return _DEMO_ROUTES_CACHE["routes"]
+
+    excluded_stfips = {2, 15, 72}
+    routes_by_id = {}
+    ordered_ids = []
+
+    for feature in _iter_geojson_features(dataset.file_path, max_features=20000):
+        props = feature.get("properties") or {}
+        stfips = props.get("STFIPS")
+        try:
+            stfips_int = int(stfips)
+        except (TypeError, ValueError):
+            continue
+        if stfips_int in excluded_stfips:
+            continue
+
+        routeid = props.get("ROUTEID") or props.get("RouteId") or props.get("routeid")
+        if not routeid:
+            continue
+        raw_name = props.get("LNAME") or props.get("Lname") or props.get("lname") or ""
+        raw_name = str(raw_name).strip()
+        if not raw_name:
+            sign1 = str(props.get("SIGN1") or "").strip()
+            signn1 = str(props.get("SIGNN1") or "").strip()
+            if sign1 and signn1:
+                raw_name = f"{sign1} {signn1}"
+            elif sign1:
+                raw_name = sign1
+            else:
+                raw_name = str(routeid)
+        lname = raw_name
+        key = f"{stfips_int}-{routeid}"
+
+        points = _extract_latlon_points(feature.get("geometry") or {})
+        if not points:
+            continue
+
+        sample_lat, sample_lon = points[len(points) // 2]
+        if not (24.0 <= sample_lat <= 50.0 and -125.0 <= sample_lon <= -66.0):
+            continue
+
+        if key not in routes_by_id:
+            routes_by_id[key] = {"id": key, "name": str(lname), "coords": []}
+            ordered_ids.append(key)
+
+        routes_by_id[key]["coords"].extend(points)
+        if len(routes_by_id[key]["coords"]) > 4000:
+            routes_by_id[key]["coords"] = _downsample_points(routes_by_id[key]["coords"], max_points=2000)
+
+        ready = [
+            rid
+            for rid in ordered_ids[:limit]
+            if len(routes_by_id[rid]["coords"]) >= 200
+        ]
+        if len(ready) >= limit:
+            break
+
+    routes = []
+    for rid in ordered_ids:
+        route = routes_by_id[rid]
+        if len(route["coords"]) < 80:
+            continue
+        route["coords"] = _downsample_points(route["coords"], max_points=500)
+        routes.append(route)
+        if len(routes) >= limit:
+            break
+
+    _DEMO_ROUTES_CACHE["mtime"] = mtime
+    _DEMO_ROUTES_CACHE["routes"] = routes
+    return routes
+
+
+def _lerp(a, b, t):
+    return a + (b - a) * t
+
+
+def _demo_fleet_snapshot():
+    routes = _load_demo_routes(limit=10)
+    if not routes:
+        return []
+
+    now = time.time()
+    trucks = []
+    total = 28
+
+    for idx in range(total):
+        route = routes[idx % len(routes)]
+        coords = route["coords"]
+        if len(coords) < 2:
+            continue
+
+        offset = (idx + 1) * 37.0
+        speed_points_per_sec = 0.35
+        position = (now * speed_points_per_sec + offset) % (len(coords) - 1)
+        i = int(position)
+        frac = position - i
+        lat = _lerp(coords[i][0], coords[i + 1][0], frac)
+        lon = _lerp(coords[i][1], coords[i + 1][1], frac)
+
+        if idx < 22:
+            status = "ACTIVE"
+        elif idx < 26:
+            status = "MAINTENANCE"
         else:
-            WeightInspection.objects.create(
-                truck=bad_truck,
-                timestamp=timezone.now(),
-                location=f"[SIMULADO EN VIVO] Autopista",
-                inspection_type='WIM',
-                gross_weight=random.uniform(80500.0, 85000.0),
-                axle_weights={"steer": 12000, "drive": 34000, "trailer": 38000},
-                is_overweight=True
-            )
+            status = "INACTIVE"
+
+        trucks.append(
+            {
+                "plate": f"DEMO-{idx + 1:03d}",
+                "brand": "Tractomula Demo",
+                "status": status,
+                "lat": lat,
+                "lon": lon,
+                "active_alert": "",
+                "route_id": route["id"],
+                "route_name": route["name"],
+                "route_pos": position,
+                "is_demo": True,
+            }
+        )
+
+    return trucks
 
 def api_live_dashboard(request):
     """Endpoint AJAX para refrescar los datos del dashboard en tiempo real."""
-    simulate_live_tick()
-    
+    demo_mode = request.GET.get("demo") == "1"
     trucks_qs = Truck.objects.filter(latitude__isnull=False, longitude__isnull=False)
     trucks_map_data = []
-    
-    alert_types = [
-        "Pérdida Crítica de Presión (Llanta TR-2)",
-        "Temperatura Alta (Eje Trasero)",
-        "Alerta HOS: Límite de Ciclo",
-        "Exceso de Peso Detectado",
-        "Sensor de Llanta Desconectado"
-    ]
-    
-    for t in trucks_qs:
-        active_alert = ""
-        if t.status == 'MAINTENANCE':
-            active_alert = random.choice([alert_types[1], alert_types[4]])
-        elif t.status == 'INACTIVE':
-            active_alert = random.choice([alert_types[0], alert_types[2], alert_types[3]])
-            
-        trucks_map_data.append({
-            'plate': t.plate,
-            'brand': t.brand,
-            'status': t.status,
-            'lat': float(t.latitude),
-            'lon': float(t.longitude),
-            'active_alert': active_alert
-        })
-        
+    if demo_mode or not trucks_qs.exists():
+        trucks_map_data = _demo_fleet_snapshot()
+        total_trucks = len(trucks_map_data)
+        active_trucks = sum(1 for t in trucks_map_data if t["status"] == "ACTIVE")
+    else:
+        for t in trucks_qs:
+            trucks_map_data.append(
+                {
+                    "plate": t.plate,
+                    "brand": t.brand,
+                    "status": t.status,
+                    "lat": float(t.latitude),
+                    "lon": float(t.longitude),
+                    "active_alert": "",
+                }
+            )
+        total_trucks = Truck.objects.count()
+        active_trucks = Truck.objects.filter(status="ACTIVE").count()
+
     from django.template.loader import render_to_string
-    
-    # Renderizar el HTML de alertas actualizadas
+
     latest_hos = HOSAlert.objects.filter(status='ACTIVE').order_by('-timestamp')[:4]
     latest_weight = WeightInspection.objects.filter(is_overweight=True).order_by('-timestamp')[:4]
-    
-    # Combinar y ordenar por timestamp
+
     all_alerts = []
     for h in latest_hos:
         all_alerts.append({'type': 'hos', 'obj': h, 'ts': h.timestamp})
     for w in latest_weight:
         all_alerts.append({'type': 'weight', 'obj': w, 'ts': w.timestamp})
-        
+
     all_alerts.sort(key=lambda x: x['ts'], reverse=True)
-    all_alerts = all_alerts[:5] # Tomar solo las 5 más recientes
-    
+    all_alerts = all_alerts[:5]
+
     html_alerts = render_to_string('includes/live_alerts.html', {
         'mixed_alerts': all_alerts
     })
-        
+
     data = {
-        'total_trucks': Truck.objects.count(),
-        'active_trucks': Truck.objects.filter(status='ACTIVE').count(),
+        'total_trucks': total_trucks,
+        'active_trucks': active_trucks,
         'recent_hos_alerts': HOSAlert.objects.filter(status='ACTIVE').count(),
         'trucks_map': trucks_map_data,
-        'latest_alerts_html': html_alerts
+        'latest_alerts_html': html_alerts,
+        'is_demo': demo_mode or not trucks_qs.exists(),
     }
     return JsonResponse(data)
 
 def dashboard_view(request):
     """Renderiza el dashboard principal con KPIs reales de la BD."""
-    # Autogenerar si está vacío
-    if not Truck.objects.exists():
-        call_command('mock_fleet', action='generate', count=20)
-        
-    # Mover camiones para que cada vez que entres se vea diferente
-    simulate_live_tick()
-    
-    # Datos para el mapa interactivo (Camiones con coordenadas y alertas simuladas)
+    demo_mode = request.GET.get("demo") == "1"
     trucks_qs = Truck.objects.filter(latitude__isnull=False, longitude__isnull=False)
     trucks_map_data = []
-    
-    import random
-    alert_types = [
-        "Pérdida Crítica de Presión (Llanta TR-2)",
-        "Temperatura Alta (Eje Trasero)",
-        "Alerta HOS: Límite de Ciclo",
-        "Exceso de Peso Detectado",
-        "Sensor de Llanta Desconectado"
-    ]
-    
-    for t in trucks_qs:
-        # Asignar alertas aleatorias si está en Mantenimiento o Inactivo
-        active_alert = ""
-        if t.status == 'MAINTENANCE':
-            active_alert = random.choice([alert_types[1], alert_types[4]])
-        elif t.status == 'INACTIVE':
-            active_alert = random.choice([alert_types[0], alert_types[2], alert_types[3]])
-            
-        trucks_map_data.append({
-            'plate': t.plate,
-            'brand': t.brand,
-            'status': t.status,
-            'lat': float(t.latitude),
-            'lon': float(t.longitude),
-            'active_alert': active_alert
-        })
-    
+    if demo_mode or not trucks_qs.exists():
+        trucks_map_data = _demo_fleet_snapshot()
+        total_trucks = len(trucks_map_data)
+        active_trucks = sum(1 for t in trucks_map_data if t["status"] == "ACTIVE")
+    else:
+        for t in trucks_qs:
+            trucks_map_data.append(
+                {
+                    "plate": t.plate,
+                    "brand": t.brand,
+                    "status": t.status,
+                    "lat": float(t.latitude),
+                    "lon": float(t.longitude),
+                    "active_alert": "",
+                }
+            )
+        total_trucks = Truck.objects.count()
+        active_trucks = Truck.objects.filter(status="ACTIVE").count()
+
     context = {
-        'total_trucks': Truck.objects.count(),
-        'active_trucks': Truck.objects.filter(status='ACTIVE').count(),
+        'total_trucks': total_trucks,
+        'active_trucks': active_trucks,
         'total_stations': TruckStop.objects.count() + AlternativeFuelStation.objects.count(),
         'recent_hos_alerts': HOSAlert.objects.filter(status='ACTIVE').count(),
         'overweight_inspections': WeightInspection.objects.filter(is_overweight=True).count(),
-        
-        # Últimas alertas para el panel lateral
+
         'latest_hos_alerts': HOSAlert.objects.filter(status='ACTIVE').order_by('-timestamp')[:2],
         'latest_weight_alerts': WeightInspection.objects.filter(is_overweight=True).order_by('-timestamp')[:2],
-        
-        # Mapa en JSON
-        'trucks_map_json': trucks_map_data
+
+        'trucks_map_json': trucks_map_data,
+        'fleet_is_demo': demo_mode or not trucks_qs.exists(),
     }
-    
-    # Pre-renderizar alertas iniciales
+
     latest_hos = HOSAlert.objects.filter(status='ACTIVE').order_by('-timestamp')[:4]
     latest_weight = WeightInspection.objects.filter(is_overweight=True).order_by('-timestamp')[:4]
     all_alerts = []
@@ -198,20 +347,37 @@ def dashboard_view(request):
         all_alerts.append({'type': 'weight', 'obj': w, 'ts': w.timestamp})
     all_alerts.sort(key=lambda x: x['ts'], reverse=True)
     context['mixed_alerts'] = all_alerts[:5]
-    
     return render(request, "dashboard.html", context)
 
 def api_routes(request):
     """
     Retorna la URL del archivo GeoJSON más reciente del Sistema Nacional de Autopistas (NHS).
     """
+    preferred_files = [
+        settings.MEDIA_ROOT / "datasets" / "routes_colored_simplified.geojson",
+        settings.MEDIA_ROOT / "datasets" / "routes_simplified.geojson",
+        settings.MEDIA_ROOT / "datasets" / "routes_interstate_simplified.geojson",
+    ]
+
+    for route_file in preferred_files:
+        if route_file.exists():
+            return JsonResponse({"url": f"{settings.MEDIA_URL}datasets/{route_file.name}"})
+
     dataset = DataSource.objects.filter(file_type='GEOJSON').order_by('-last_load').first()
-    
     if dataset and dataset.file_path:
-        # En una arquitectura real, esto retornaría la URL de S3 o media.
-        # Por ahora devolvemos None para que el frontend maneje la capa si es necesario.
-        return JsonResponse({'url': None})
+        dataset_path = Path(dataset.file_path)
+        if dataset_path.exists():
+            try:
+                relative_path = dataset_path.relative_to(settings.MEDIA_ROOT)
+                return JsonResponse({"url": f"{settings.MEDIA_URL}{relative_path.as_posix()}"})
+            except ValueError:
+                pass
+
     return JsonResponse({'url': None}, status=404)
+
+
+def api_demo_routes(request):
+    return JsonResponse({"routes": _load_demo_routes(limit=10)})
 
 def map_view(request):
     """Renderiza la plantilla principal del mapa interactivo."""

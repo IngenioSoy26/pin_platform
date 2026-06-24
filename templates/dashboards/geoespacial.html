@@ -19,7 +19,7 @@
             <h2 class="mb-1" style="color: var(--text-primary); font-weight: 700;">
                 <i class="fa-solid fa-map-location-dot me-2" style="color: #3b82f6;"></i>Centro de Inteligencia Geoespacial
             </h2>
-            <p class="mb-0" style="color: var(--text-secondary);">Mapeo avanzado, Geocercas, Clima y Densidad de Servicios en tiempo real</p>
+            <p class="mb-0" style="color: var(--text-secondary);">Flota en vivo, cobertura de amenidades por corredor, clima operativo y cierres/restricciones georreferenciadas</p>
         </div>
         <div class="d-flex gap-3 align-items-center">
             <span id="sync-badge" class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.6rem 1.2rem; border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; font-size: 0.9rem; display: flex; align-items: center; white-space: nowrap;">
@@ -35,7 +35,7 @@
             <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
                 <div class="kpi-icon" style="background: rgba(59, 130, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem;"><i class="fa-solid fa-draw-polygon text-primary"></i></div>
                 <div class="kpi-info ms-3">
-                    <span class="kpi-label" style="font-size: 0.7rem;">Geocercas Activas</span>
+                    <span class="kpi-label" style="font-size: 0.7rem;">Hubs de Servicio</span>
                     <span class="kpi-value text-primary" style="font-size: 1.5rem;">{{ active_geofences }}</span>
                 </div>
             </div>
@@ -55,7 +55,7 @@
             <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
                 <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.15); width: 45px; height: 45px; font-size: 1.2rem;"><i class="fa-solid fa-route text-warning"></i></div>
                 <div class="kpi-info ms-3">
-                    <span class="kpi-label" style="font-size: 0.7rem;">Desvíos de Ruta</span>
+                    <span class="kpi-label" style="font-size: 0.7rem;">Rutas Impactadas</span>
                     <span class="kpi-value text-warning" style="font-size: 1.5rem;">{{ route_deviations }}</span>
                 </div>
             </div>
@@ -65,7 +65,7 @@
             <div class="glass-card kpi-card h-100 d-flex flex-row align-items-center" style="padding: 1rem;">
                 <div class="kpi-icon" style="background: rgba(139, 92, 246, 0.15); width: 45px; height: 45px; font-size: 1.2rem;"><i class="fa-solid fa-ban" style="color: #8b5cf6;"></i></div>
                 <div class="kpi-info ms-3">
-                    <span class="kpi-label" style="font-size: 0.7rem;">Zonas Restringidas</span>
+                    <span class="kpi-label" style="font-size: 0.7rem;">Cierres / Restricciones</span>
                     <span class="kpi-value" style="color: #8b5cf6; font-size: 1.5rem;">{{ restricted_zones }}</span>
                 </div>
             </div>
@@ -78,23 +78,50 @@
         <div class="col-12 col-xl-3">
             <div class="glass-card h-100">
                 <h5 style="color: var(--text-primary); font-weight: 600; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                    <i class="fa-solid fa-layer-group me-2 text-info"></i>Filtros de Capas
+                    <i class="fa-solid fa-layer-group me-2 text-info"></i>Filtros Operativos
                 </h5>
                 
                 <div class="form-check form-switch mb-4 custom-switch">
-                    <input class="form-check-input" type="checkbox" id="layerGeofences" checked>
-                    <label class="form-check-label ms-2" for="layerGeofences" style="color: #cbd5e1; font-weight: 500;">Geocercas & Hubs</label>
+                    <input class="form-check-input" type="checkbox" id="layerFleet" checked>
+                    <label class="form-check-label ms-2" for="layerFleet" style="color: #cbd5e1; font-weight: 500;">Flota en vivo</label>
                 </div>
                 <div class="form-check form-switch mb-4 custom-switch">
                     <input class="form-check-input" type="checkbox" id="layerHeatmap" checked>
                     <label class="form-check-label ms-2" for="layerHeatmap" style="color: #cbd5e1; font-weight: 500;">
-                        Mapa de Calor (Densidad)
-                        <small class="d-block text-muted mt-1" style="font-size: 0.75rem;">Muestra concentración de Truck Stops, duchas y parqueaderos seguros</small>
+                        Cobertura de Amenidades
+                        <small class="d-block text-muted mt-1" style="font-size: 0.75rem;">Calculada sobre donde circula la flota: más servicios = más favorable</small>
                     </label>
                 </div>
-                <div class="form-check form-switch custom-switch">
+                <div class="form-check form-switch mb-4 custom-switch">
+                    <input class="form-check-input" type="checkbox" id="layerHubs" checked>
+                    <label class="form-check-label ms-2" for="layerHubs" style="color: #cbd5e1; font-weight: 500;">Hubs favorables</label>
+                </div>
+                <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:14px; margin-top:10px;">
+                    <div style="color:#94a3b8; font-size:0.76rem; text-transform:uppercase; letter-spacing:.08em; margin-bottom:12px;">Servicios Estratégicos</div>
+                    <div class="form-check form-switch mb-3 custom-switch">
+                        <input class="form-check-input" type="checkbox" id="layerRest" checked>
+                        <label class="form-check-label ms-2" for="layerRest" style="color: #cbd5e1; font-weight: 500;">Truck Stops y descanso</label>
+                    </div>
+                    <div class="form-check form-switch mb-3 custom-switch">
+                        <input class="form-check-input" type="checkbox" id="layerFuelServices" checked>
+                        <label class="form-check-label ms-2" for="layerFuelServices" style="color: #cbd5e1; font-weight: 500;">Combustible pesado</label>
+                    </div>
+                    <div class="form-check form-switch mb-3 custom-switch">
+                        <input class="form-check-input" type="checkbox" id="layerTireServices" checked>
+                        <label class="form-check-label ms-2" for="layerTireServices" style="color: #cbd5e1; font-weight: 500;">Talleres y llantas</label>
+                    </div>
+                    <div class="form-check form-switch mb-4 custom-switch">
+                        <input class="form-check-input" type="checkbox" id="layerFoodServices" checked>
+                        <label class="form-check-label ms-2" for="layerFoodServices" style="color: #cbd5e1; font-weight: 500;">Comida y restaurantes</label>
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-4 custom-switch">
                     <input class="form-check-input" type="checkbox" id="layerWeather" checked>
-                    <label class="form-check-label ms-2" for="layerWeather" style="color: #cbd5e1; font-weight: 500;">Alertas Meteorológicas</label>
+                    <label class="form-check-label ms-2" for="layerWeather" style="color: #cbd5e1; font-weight: 500;">Sistema meteorológico en línea</label>
+                </div>
+                <div class="form-check form-switch custom-switch">
+                    <input class="form-check-input" type="checkbox" id="layerClosures" checked>
+                    <label class="form-check-label ms-2" for="layerClosures" style="color: #cbd5e1; font-weight: 500;">Cierres / restricciones</label>
                 </div>
             </div>
         </div>
@@ -108,9 +135,9 @@
                 <div id="heatmapLegend" style="position: absolute; bottom: 30px; left: 30px; z-index: 400; background: rgba(15,23,42,0.85); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
                     <h6 style="color: #f8fafc; font-size: 0.85rem; margin-bottom: 10px; font-weight: 700;">Cobertura de Servicios (Amenities)</h6>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="color: #94a3b8; font-size: 0.75rem;">Escasa</span>
-                        <div style="width: 150px; height: 10px; border-radius: 5px; background: linear-gradient(to right, rgba(0,0,255,0.5), rgba(0,255,255,0.6), rgba(0,255,0,0.7), rgba(255,255,0,0.8), rgba(255,0,0,0.9));"></div>
-                        <span style="color: #94a3b8; font-size: 0.75rem;">Favorable</span>
+                        <span style="color: #94a3b8; font-size: 0.75rem;">Desfavorable</span>
+                        <div style="width: 150px; height: 10px; border-radius: 5px; background: linear-gradient(to right, #6b7280, #94a3b8, #60a5fa, #2563eb, #1d4ed8);"></div>
+                        <span style="color: #94a3b8; font-size: 0.75rem;">Muy favorable</span>
                     </div>
                 </div>
             </div>
@@ -122,6 +149,10 @@
 {{ trucks_map_json|json_script:"trucks-data" }}
 {{ geofences_json|json_script:"geofences-data" }}
 {{ heatmap_json|json_script:"heatmap-data" }}
+{{ amenity_markers_json|json_script:"amenity-markers-data" }}
+{{ weather_alerts_json|json_script:"weather-data" }}
+{{ road_closures_json|json_script:"closures-data" }}
+{{ geospatial_meta_json|json_script:"geo-meta-data" }}
 
 <style>
     /* Estilos para el Glassmorphism y KPIs */
@@ -213,9 +244,452 @@
 
 <script>
     let map;
-    let markersLayer;
-    let geofencesLayer;
+    let fleetLayer;
+    let hubsLayer;
+    let amenitiesLayer;
+    let weatherLayer;
+    let closuresLayer;
     let heatLayer;
+    const urlParams = new URLSearchParams(window.location.search);
+    const geoDemoMode = urlParams.get('demo') !== '0';
+    let currentPayload = {
+        trucks: JSON.parse(document.getElementById('trucks-data').textContent),
+        service_hubs: JSON.parse(document.getElementById('geofences-data').textContent),
+        service_heatmap: JSON.parse(document.getElementById('heatmap-data').textContent),
+        amenity_markers: JSON.parse(document.getElementById('amenity-markers-data').textContent),
+        weather_alerts: JSON.parse(document.getElementById('weather-data').textContent),
+        road_closures: JSON.parse(document.getElementById('closures-data').textContent),
+        meta: JSON.parse(document.getElementById('geo-meta-data').textContent),
+        kpis: {
+            active_geofences: Number('{{ active_geofences|default:0 }}'),
+            weather_alerts: Number('{{ weather_alerts|default:0 }}'),
+            route_deviations: Number('{{ route_deviations|default:0 }}'),
+            restricted_zones: Number('{{ restricted_zones|default:0 }}')
+        }
+    };
+
+    function buildGeoLiveUrl() {
+        const params = new URLSearchParams();
+        if (geoDemoMode) {
+            params.set('demo', '1');
+        }
+        return `/dashboards/api/geoespacial/live/?${params.toString()}`;
+    }
+
+    function updateKpis(payload) {
+        const values = payload?.kpis || {};
+        const kpiNodes = document.querySelectorAll('.kpi-card .kpi-value');
+        if (kpiNodes.length < 4) return;
+        kpiNodes[0].textContent = values.active_geofences ?? 0;
+        kpiNodes[1].textContent = values.weather_alerts ?? 0;
+        kpiNodes[2].textContent = values.route_deviations ?? 0;
+        kpiNodes[3].textContent = values.restricted_zones ?? 0;
+    }
+
+    function updateSyncBadge(meta, stateText) {
+        const badge = document.getElementById('sync-badge');
+        if (!badge) return;
+        if (stateText) {
+            badge.innerHTML = `<i class="fa-solid fa-satellite-dish fa-spin" style="margin-right: 0.5rem;"></i> ${stateText}`;
+            return;
+        }
+        const suffix = meta?.demo_mode ? 'demo' : 'live';
+        badge.innerHTML = `<i class="fa-solid fa-satellite-dish" style="margin-right: 0.5rem; animation: pulse 2s infinite;"></i> Actualizado ${meta?.last_updated || '--:--:--'} · ${suffix}`;
+    }
+
+    function applyHeatmap(points) {
+        if (heatLayer) {
+            map.removeLayer(heatLayer);
+            heatLayer = null;
+        }
+        if (!Array.isArray(points) || points.length === 0 || typeof L.heatLayer === 'undefined') {
+            return;
+        }
+        heatLayer = L.heatLayer(points, {
+            radius: 42,
+            blur: 28,
+            maxZoom: 10,
+            max: 1.0,
+            minOpacity: 0.35,
+            gradient: {
+                0.15: '#6b7280',
+                0.35: '#94a3b8',
+                0.55: '#60a5fa',
+                0.8: '#2563eb',
+                1.0: '#1d4ed8'
+            }
+        });
+        if (document.getElementById('layerHeatmap').checked) {
+            heatLayer.addTo(map);
+        }
+    }
+
+    function applyHubs(hubs) {
+        hubsLayer.clearLayers();
+        (hubs || []).forEach(hub => {
+            const nearestByType = hub.nearest_by_type || {};
+            const nearestByGroup = hub.nearest_by_group || {};
+            const circle = L.circle([hub.lat, hub.lon], {
+                color: hub.color || '#60a5fa',
+                fillColor: hub.color || '#60a5fa',
+                fillOpacity: 0.12,
+                radius: hub.radius || 42000,
+                weight: 2
+            });
+            circle.bindPopup(`
+                <div style="min-width:220px;">
+                    <h6 style="margin:0 0 8px 0; color:${hub.color || '#60a5fa'}; font-weight:700;">${hub.name}</h6>
+                    <div style="color:#cbd5e1; font-size:0.9rem;"><strong>Corredor:</strong> ${hub.route_name || 'Cobertura general'}</div>
+                    <div style="color:#cbd5e1; font-size:0.9rem;"><strong>Favorabilidad:</strong> ${(Number(hub.score || 0) * 100).toFixed(0)}%</div>
+                    <div style="margin-top:8px; color:#94a3b8; font-size:0.82rem;">
+                        Truck stops: ${hub.breakdown?.truck_stop || 0}<br>
+                        Combustible: ${hub.breakdown?.fuel || 0}<br>
+                        Llantas: ${hub.breakdown?.tire_shop || 0}<br>
+                        Reciclaje: ${hub.breakdown?.recycling || 0}
+                    </div>
+                    <div style="margin-top:8px; color:#94a3b8; font-size:0.82rem;">
+                        Descanso: ${hub.group_breakdown?.rest || 0} · Comida: ${hub.group_breakdown?.food || 0} · Combustible: ${hub.group_breakdown?.fuel || 0}
+                    </div>
+                    <div style="margin-top:8px; color:#cbd5e1; font-size:0.82rem;">
+                        Descanso más cercano: ${nearestByGroup.rest ? `${nearestByGroup.rest.name} (${nearestByGroup.rest.distance_miles} mi)` : 'N/D'}<br>
+                        Comida más cercana: ${nearestByGroup.food ? `${nearestByGroup.food.name} (${nearestByGroup.food.distance_miles} mi)` : 'N/D'}<br>
+                        Combustible más cercano: ${nearestByGroup.fuel ? `${nearestByGroup.fuel.name} (${nearestByGroup.fuel.distance_miles} mi)` : (nearestByType.fuel ? `${nearestByType.fuel.name} (${nearestByType.fuel.distance_miles} mi)` : 'N/D')}<br>
+                        Llantas más cercanas: ${nearestByGroup.tire ? `${nearestByGroup.tire.name} (${nearestByGroup.tire.distance_miles} mi)` : (nearestByType.tire_shop ? `${nearestByType.tire_shop.name} (${nearestByType.tire_shop.distance_miles} mi)` : 'N/D')}
+                    </div>
+                </div>
+            `);
+            hubsLayer.addLayer(circle);
+        });
+    }
+
+    function amenityGroupStyle(group) {
+        return {
+            rest: { color: '#2563eb', icon: 'fa-square-parking', label: 'Truck Stop / descanso' },
+            fuel: { color: '#06b6d4', icon: 'fa-gas-pump', label: 'Combustible pesado' },
+            tire: { color: '#f59e0b', icon: 'fa-toolbox', label: 'Taller / llantas' },
+            food: { color: '#ef4444', icon: 'fa-burger', label: 'Comida / restaurante' },
+            recycling: { color: '#10b981', icon: 'fa-recycle', label: 'Reciclaje' }
+        }[group] || { color: '#94a3b8', icon: 'fa-location-dot', label: 'Servicio' };
+    }
+
+    function amenityIcon(group) {
+        const config = amenityGroupStyle(group);
+        return L.divIcon({
+            html: `<div style="background:rgba(15,23,42,0.94); border:1px solid ${config.color}; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; color:${config.color}; font-size:10px;"><i class="fa-solid ${config.icon}"></i></div>`,
+            className: '',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+    }
+
+    function amenityTypeLabel(type) {
+        return {
+            truck_stop: 'Truck Stop',
+            fuel: 'Estación de energía',
+            tire_shop: 'Taller de llantas',
+            recycling: 'Reciclaje'
+        }[type] || 'Servicio';
+    }
+
+    function amenityGroupLabel(group) {
+        return amenityGroupStyle(group).label;
+    }
+
+    function averageCoord(items, key) {
+        if (!items || items.length === 0) return 0;
+        return items.reduce((sum, item) => sum + Number(item[key] || 0), 0) / items.length;
+    }
+
+    function clusterItemsByDistance(items, distanceMiles, getLat, getLon) {
+        const clusters = [];
+        (items || []).forEach(item => {
+            const lat = Number(getLat(item));
+            const lon = Number(getLon(item));
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                return;
+            }
+            let targetCluster = null;
+            for (const cluster of clusters) {
+                if (map.distance([lat, lon], [cluster.lat, cluster.lon]) <= distanceMiles * 1609.34) {
+                    targetCluster = cluster;
+                    break;
+                }
+            }
+            if (!targetCluster) {
+                targetCluster = { lat, lon, items: [] };
+                clusters.push(targetCluster);
+            }
+            targetCluster.items.push(item);
+            targetCluster.lat = averageCoord(targetCluster.items, '__lat');
+            targetCluster.lon = averageCoord(targetCluster.items, '__lon');
+        });
+        return clusters;
+    }
+
+    function withInternalCoords(items, getLat, getLon) {
+        return (items || []).map(item => ({
+            ...item,
+            __lat: Number(getLat(item)),
+            __lon: Number(getLon(item))
+        }));
+    }
+
+    function convoyIcon(count, color) {
+        return L.divIcon({
+            html: `<div style="background:rgba(15,23,42,0.96); border:2px solid ${color}; border-radius:999px; min-width:34px; height:34px; padding:0 10px; display:flex; align-items:center; justify-content:center; color:${color}; font-size:12px; font-weight:700; box-shadow:0 0 0 4px ${color}22;"><i class="fa-solid fa-truck-fast" style="margin-right:6px;"></i>${count}</div>`,
+            className: '',
+            iconSize: [44, 34],
+            iconAnchor: [22, 17]
+        });
+    }
+
+    function amenityClusterIcon(group, count) {
+        const config = amenityGroupStyle(group);
+        return L.divIcon({
+            html: `<div style="background:rgba(15,23,42,0.94); border:1px solid ${config.color}; border-radius:999px; min-width:30px; height:30px; padding:0 8px; display:flex; align-items:center; justify-content:center; color:${config.color}; font-size:11px; font-weight:700;"><i class="fa-solid ${config.icon}" style="margin-right:5px;"></i>${count}</div>`,
+            className: '',
+            iconSize: [40, 30],
+            iconAnchor: [20, 15]
+        });
+    }
+
+    function currentFleetClusterDistance() {
+        const zoom = map.getZoom();
+        if (zoom <= 6) return 18;
+        if (zoom <= 7) return 10;
+        if (zoom <= 8) return 6;
+        return 0;
+    }
+
+    function currentAmenityClusterDistance() {
+        const zoom = map.getZoom();
+        if (zoom <= 6) return 22;
+        if (zoom <= 7) return 12;
+        if (zoom <= 8) return 6;
+        return 0;
+    }
+
+    function selectedAmenityGroups() {
+        return {
+            rest: document.getElementById('layerRest').checked,
+            fuel: document.getElementById('layerFuelServices').checked,
+            tire: document.getElementById('layerTireServices').checked,
+            food: document.getElementById('layerFoodServices').checked,
+            recycling: true
+        };
+    }
+
+    function applyAmenities(items) {
+        amenitiesLayer.clearLayers();
+        const enabledGroups = selectedAmenityGroups();
+        const zoom = map.getZoom();
+        const bounds = map.getBounds();
+        let filteredItems = (items || []).filter(item => {
+            const groups = item.groups || [];
+            if (!groups.some(group => enabledGroups[group])) {
+                return false;
+            }
+            if (zoom < 7) {
+                return bounds.pad(0.25).contains([item.lat, item.lon]);
+            }
+            return bounds.pad(0.1).contains([item.lat, item.lon]);
+        });
+        const clusterDistance = currentAmenityClusterDistance();
+        if (clusterDistance > 0) {
+            const clustered = clusterItemsByDistance(withInternalCoords(filteredItems, item => item.lat, item => item.lon), clusterDistance, item => item.__lat, item => item.__lon);
+            clustered.forEach(cluster => {
+                if (cluster.items.length === 1) {
+                    filteredItems = filteredItems;
+                    return;
+                }
+                const representative = cluster.items[0];
+                const primaryGroup = representative.primary_group || (representative.groups || [])[0] || representative.type;
+                const marker = L.marker([cluster.lat, cluster.lon], { icon: amenityClusterIcon(primaryGroup, cluster.items.length) });
+                const preview = cluster.items.slice(0, 6).map(item => `${item.name} (${item.distance_miles} mi)`).join('<br>');
+                marker.bindPopup(`
+                    <div style="min-width:220px;">
+                        <h6 style="margin:0 0 8px 0; color:#f8fafc; font-weight:700;">Servicios agrupados</h6>
+                        <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Categoría:</strong> ${amenityGroupLabel(primaryGroup)}</div>
+                        <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Puntos:</strong> ${cluster.items.length}</div>
+                        <div style="margin-top:8px; font-size:0.82rem; color:#94a3b8;">${preview}</div>
+                    </div>
+                `);
+                amenitiesLayer.addLayer(marker);
+            });
+            filteredItems = clustered.filter(cluster => cluster.items.length === 1).map(cluster => cluster.items[0]);
+        }
+        filteredItems.forEach(item => {
+            const groups = item.groups || [];
+            const primaryGroup = (item.primary_group && enabledGroups[item.primary_group]) ? item.primary_group : (groups.find(group => enabledGroups[group]) || item.primary_group || item.type);
+            const amenityNames = (item.extra?.amenity_names || []).slice(0, 4).join(', ');
+            const groupLabels = groups.map(group => amenityGroupLabel(group)).join(' · ');
+            const marker = L.marker([item.lat, item.lon], { icon: amenityIcon(primaryGroup) });
+            marker.bindPopup(`
+                <div style="min-width:220px;">
+                    <h6 style="margin:0 0 8px 0; color:#f8fafc; font-weight:700;">${item.name}</h6>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Tipo:</strong> ${amenityTypeLabel(item.type)}</div>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Categorías:</strong> ${groupLabels || 'Servicio general'}</div>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Distancia al corredor:</strong> ${item.distance_miles} mi</div>
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:6px;">Peso operativo: ${Number(item.weight || 0).toFixed(2)}</div>
+                    ${amenityNames ? `<div style="font-size:0.8rem; color:#94a3b8; margin-top:6px;"><strong>Amenidades:</strong> ${amenityNames}</div>` : ''}
+                </div>
+            `);
+            amenitiesLayer.addLayer(marker);
+        });
+    }
+
+    function weatherIcon(color) {
+        return L.divIcon({
+            html: `<div style="background:rgba(15,23,42,0.92); border:2px solid ${color}; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:${color};"><i class="fa-solid fa-cloud-bolt"></i></div>`,
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+    }
+
+    function closureIcon(color) {
+        return L.divIcon({
+            html: `<div style="background:rgba(15,23,42,0.92); border:2px solid ${color}; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; color:${color};"><i class="fa-solid fa-road-circle-xmark"></i></div>`,
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+    }
+
+    function applyWeather(alerts) {
+        weatherLayer.clearLayers();
+        (alerts || []).forEach(alert => {
+            const marker = L.marker([alert.lat, alert.lon], { icon: weatherIcon(alert.color || '#38bdf8') });
+            marker.bindPopup(`
+                <div style="min-width:240px;">
+                    <h6 style="margin:0 0 8px 0; color:${alert.color || '#38bdf8'}; font-weight:700;">${alert.event}</h6>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Severidad:</strong> ${alert.severity}</div>
+                    <div style="font-size:0.85rem; color:#cbd5e1; margin-top:6px;">${alert.headline || ''}</div>
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:6px;"><strong>Área:</strong> ${alert.area_desc || 'N/D'}</div>
+                    <div style="font-size:0.8rem; color:#94a3b8;"><strong>Fuente:</strong> ${alert.source || 'Sistema en línea'}</div>
+                </div>
+            `);
+            weatherLayer.addLayer(marker);
+        });
+    }
+
+    function applyClosures(items) {
+        closuresLayer.clearLayers();
+        (items || []).forEach(item => {
+            const marker = L.marker([item.lat, item.lon], { icon: closureIcon(item.color || '#f97316') });
+            marker.bindPopup(`
+                <div style="min-width:230px;">
+                    <h6 style="margin:0 0 8px 0; color:${item.color || '#f97316'}; font-weight:700;">${item.title}</h6>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Motivo:</strong> ${item.reason}</div>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Severidad:</strong> ${item.severity}</div>
+                    <div style="font-size:0.82rem; color:#94a3b8; margin-top:6px;">${item.headline || ''}</div>
+                    <div style="font-size:0.8rem; color:#94a3b8;"><strong>Fuente:</strong> ${item.source || 'PIN'}</div>
+                </div>
+            `);
+            closuresLayer.addLayer(marker);
+        });
+    }
+
+    function truckMarkerHtml(truck) {
+        let borderColor = '#10b981';
+        if (truck.status === 'CRITICAL') borderColor = '#ef4444';
+        else if (truck.status === 'WARNING' || truck.status === 'MAINTENANCE') borderColor = '#f59e0b';
+        const coverageColor = truck.coverage_score >= 0.6 ? '#1d4ed8' : (truck.coverage_score >= 0.35 ? '#60a5fa' : '#6b7280');
+        return `
+            <div style="
+                background: rgba(15, 23, 42, 0.96);
+                border: 2px solid ${borderColor};
+                border-radius: 50%;
+                width: 34px; height: 34px;
+                display: flex; align-items: center; justify-content: center;
+                color: ${coverageColor};
+                font-size: 13px;
+                box-shadow: 0 0 0 4px ${coverageColor}22;
+            ">
+                <i class="fa-solid fa-truck"></i>
+            </div>
+        `;
+    }
+
+    function applyFleet(trucks) {
+        fleetLayer.clearLayers();
+        const zoom = map.getZoom();
+        const bounds = map.getBounds();
+        const visibleTrucks = (trucks || []).filter(truck => bounds.pad(0.2).contains([truck.lat, truck.lon]));
+        const clusterDistance = currentFleetClusterDistance();
+        let trucksToRender = visibleTrucks;
+        if (clusterDistance > 0) {
+            const clusters = clusterItemsByDistance(withInternalCoords(visibleTrucks, item => item.lat, item => item.lon), clusterDistance, item => item.__lat, item => item.__lon);
+            clusters.forEach(cluster => {
+                if (cluster.items.length === 1) {
+                    return;
+                }
+                const items = cluster.items;
+                const activeCount = items.filter(item => item.status === 'ACTIVE').length;
+                const maintenanceCount = items.filter(item => item.status === 'MAINTENANCE').length;
+                const avgCoverage = items.reduce((sum, item) => sum + Number(item.coverage_score || 0), 0) / items.length;
+                const color = avgCoverage >= 0.6 ? '#1d4ed8' : (avgCoverage >= 0.35 ? '#60a5fa' : '#6b7280');
+                const popupList = items.slice(0, 8).map(item => `${item.plate} · ${item.coverage_label} · ${item.route_name || 'Corredor demo'}`).join('<br>');
+                const marker = L.marker([cluster.lat, cluster.lon], { icon: convoyIcon(items.length, color) });
+                marker.bindPopup(`
+                    <div style="min-width:240px;">
+                        <h6 style="margin:0 0 8px 0; color:${color}; font-weight:700;">Flota agrupada</h6>
+                        <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Vehículos:</strong> ${items.length}</div>
+                        <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Activos:</strong> ${activeCount} · <strong>Mantenimiento:</strong> ${maintenanceCount}</div>
+                        <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Cobertura media:</strong> ${(avgCoverage * 100).toFixed(0)}%</div>
+                        <div style="margin-top:8px; font-size:0.82rem; color:#94a3b8;">${popupList}</div>
+                    </div>
+                `);
+                fleetLayer.addLayer(marker);
+            });
+            trucksToRender = clusters.filter(cluster => cluster.items.length === 1).map(cluster => cluster.items[0]);
+        }
+        trucksToRender.forEach(truck => {
+            const nearbyServices = (truck.nearby_services || []).map(service => {
+                return `${amenityGroupLabel(service.primary_group || (service.groups || [])[0] || service.type)}: ${service.name} (${service.distance_miles} mi)`;
+            }).slice(0, 4).join('<br>') || 'Sin servicios destacados en el radio operativo';
+            const marker = L.marker([truck.lat, truck.lon], {
+                icon: L.divIcon({
+                    html: truckMarkerHtml(truck),
+                    className: '',
+                    iconSize: [34, 34],
+                    iconAnchor: [17, 17]
+                })
+            });
+            marker.bindPopup(`
+                <div style="padding:8px; min-width:220px;">
+                    <h6 style="margin:0 0 8px 0; color:#f8fafc; display:flex; justify-content:space-between; gap:8px;">
+                        <span>${truck.plate}</span>
+                        <span style="color:${truck.coverage_score >= 0.6 ? '#1d4ed8' : (truck.coverage_score >= 0.35 ? '#60a5fa' : '#6b7280')}; font-size:0.8em; border:1px solid currentColor; padding:2px 6px; border-radius:4px;">${truck.coverage_label || 'N/D'}</span>
+                    </h6>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Estado:</strong> ${truck.status}</div>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Velocidad:</strong> ${truck.speed || 0} mph</div>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Rumbo:</strong> ${truck.heading || 0}°</div>
+                    <div style="font-size:0.9rem; color:#cbd5e1;"><strong>Cobertura:</strong> ${truck.coverage_label || 'N/D'} (${((truck.coverage_score || 0) * 100).toFixed(0)}%)</div>
+                    <div style="margin-top:8px; font-size:0.82rem; color:#94a3b8;">
+                        Descanso: ${truck.group_breakdown?.rest || 0} · Comida: ${truck.group_breakdown?.food || 0} · Combustible: ${truck.group_breakdown?.fuel || 0} · Llantas: ${truck.group_breakdown?.tire || 0}
+                    </div>
+                    <div style="margin-top:8px; font-size:0.82rem; color:#cbd5e1;">
+                        ${nearbyServices}
+                    </div>
+                    <div style="font-size:0.8rem; color:#94a3b8; margin-top:6px;">${truck.route_name || (truck.is_demo ? 'Corredor demo' : 'Telemetría operacional')}</div>
+                </div>
+            `);
+            fleetLayer.addLayer(marker);
+        });
+    }
+
+    function renderPayload(payload) {
+        currentPayload = payload;
+        updateKpis(payload);
+        updateSyncBadge(payload.meta);
+        applyFleet(payload.trucks || []);
+        applyHubs(payload.service_hubs || []);
+        applyAmenities(payload.amenity_markers || []);
+        applyWeather(payload.weather_alerts || []);
+        applyClosures(payload.road_closures || []);
+        applyHeatmap(payload.service_heatmap || []);
+    }
 
     function initMap() {
         if (!document.getElementById('geoMap')) return;
@@ -232,158 +706,81 @@
             maxZoom: 20
         }).addTo(map);
 
-        markersLayer = L.layerGroup().addTo(map);
-        geofencesLayer = L.layerGroup().addTo(map);
+        fleetLayer = L.layerGroup().addTo(map);
+        hubsLayer = L.layerGroup().addTo(map);
+        amenitiesLayer = L.layerGroup().addTo(map);
+        weatherLayer = L.layerGroup().addTo(map);
+        closuresLayer = L.layerGroup().addTo(map);
         
-        loadData();
+        wireLayerToggles();
+        renderPayload(currentPayload);
     }
 
-    function loadData() {
-        try {
-            const trucks = JSON.parse(document.getElementById('trucks-data').textContent);
-            const geofences = JSON.parse(document.getElementById('geofences-data').textContent);
-            const heatmapPoints = JSON.parse(document.getElementById('heatmap-data').textContent);
-            
-            // Dibujar Heatmap (Mapa de calor)
-            if (typeof L.heatLayer !== 'undefined') {
-                // Configuración extrema para forzar la visibilidad del heatmap
-                heatLayer = L.heatLayer(heatmapPoints, {
-                    radius: 50,      // Muy grande
-                    blur: 35,        // Muy difuminado
-                    maxZoom: 10,
-                    max: 1.0,        // Normaliza los valores
-                    minOpacity: 0.6, // Nunca será transparente
-                    gradient: {
-                        0.2: 'blue', 
-                        0.4: 'cyan', 
-                        0.6: 'lime', 
-                        0.8: 'yellow', 
-                        1.0: 'red'
-                    }
-                }).addTo(map);
-            } else {
-                console.warn("Leaflet Heatmap plugin not loaded.");
-            }
-
-            // Dibujar Geocercas
-            geofencesLayer.clearLayers();
-            geofences.forEach(gf => {
-                const circle = L.circle([gf.lat, gf.lon], {
-                    color: gf.color,
-                    fillColor: gf.color,
-                    fillOpacity: 0.1,
-                    radius: gf.radius,
-                    weight: 2,
-                    dashArray: '5, 5'
-                }).addTo(geofencesLayer);
-                
-                circle.bindPopup(`
-                    <div style="text-align:center;">
-                        <h6 style="margin:0; font-weight:700; color:${gf.color};">${gf.name}</h6>
-                        <small style="color:#94a3b8;">Radio de Alerta: ${gf.radius/1000} km</small>
-                    </div>
-                `);
-            });
-
-            // Dibujar Marcadores de Camiones
-            markersLayer.clearLayers();
-            trucks.forEach(t => {
-                let color, pulseClass;
-                if (t.status === 'CRITICAL') { color = '#ef4444'; pulseClass = 'marker-pulse-critical'; }
-                else if (t.status === 'WARNING') { color = '#f59e0b'; pulseClass = 'marker-pulse-warning'; }
-                else { color = '#10b981'; pulseClass = 'marker-pulse-active'; }
-
-                const iconHtml = `
-                    <div class="${pulseClass}" style="
-                        background: rgba(15, 23, 42, 0.95);
-                        border: 2px solid ${color};
-                        border-radius: 50%;
-                        width: 32px; height: 32px;
-                        display: flex; align-items: center; justify-content: center;
-                        color: ${color};
-                        font-size: 13px;
-                    ">
-                        <i class="fa-solid fa-truck"></i>
-                    </div>
-                `;
-
-                const icon = L.divIcon({
-                    html: iconHtml,
-                    className: '',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 16]
-                });
-
-                const marker = L.marker([t.lat, t.lon], { icon }).addTo(markersLayer);
-                
-                marker.bindPopup(`
-                    <div style="padding: 8px; min-width: 200px;">
-                        <h6 style="margin:0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; margin-bottom: 10px; color: #f8fafc; display:flex; justify-content:space-between;">
-                            <span><i class="fa-solid fa-truck text-primary me-2"></i>${t.plate}</span>
-                            <span style="color:${color}; font-size:0.8em; border: 1px solid ${color}; padding: 2px 6px; border-radius: 4px;">${t.status}</span>
-                        </h6>
-                        <div style="font-size: 0.9rem; color: #cbd5e1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                            <div>
-                                <small style="color: #64748b; display: block;">Velocidad</small>
-                                <strong>${t.speed} mph</strong>
-                            </div>
-                            <div>
-                                <small style="color: #64748b; display: block;">Rumbo</small>
-                                <strong>${t.heading}°</strong>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <a href="/dashboards/iot/" class="btn btn-sm btn-primary" style="border-radius:6px; font-size:0.85rem; width:100%; font-weight: 600;">
-                                <i class="fa-solid fa-microchip me-1"></i> Auditar Telemetría
-                            </a>
-                        </div>
-                    </div>
-                `);
-            });
-
-            // Controles de capas interactivos
-            document.getElementById('layerGeofences').addEventListener('change', function(e) {
-                if(e.target.checked) map.addLayer(geofencesLayer);
-                else map.removeLayer(geofencesLayer);
-            });
-            
-            document.getElementById('layerHeatmap').addEventListener('change', function(e) {
-                const legend = document.getElementById('heatmapLegend');
-                if(e.target.checked) {
-                    if(heatLayer) map.addLayer(heatLayer);
-                    legend.style.display = 'block';
-                } else {
-                    if(heatLayer) map.removeLayer(heatLayer);
-                    legend.style.display = 'none';
-                }
-            });
-
-        } catch (e) {
-            console.error("Error cargando mapa:", e);
+    function toggleLayer(layer, enabled) {
+        if (!layer) return;
+        if (enabled) {
+            if (!map.hasLayer(layer)) map.addLayer(layer);
+        } else if (map.hasLayer(layer)) {
+            map.removeLayer(layer);
         }
     }
 
-    function autoSync() {
-        // Mantenemos el auto-sync pero aumentamos a 15 segundos para dar tiempo a analizar el mapa de calor
-        const badge = document.getElementById('sync-badge');
-        if (badge) badge.innerHTML = '<i class="fa-solid fa-satellite-dish fa-spin" style="margin-right: 0.5rem;"></i> Analizando Capas...';
-        
-        setTimeout(() => {
-            location.reload();
-        }, 15000); 
+    function wireLayerToggles() {
+        document.getElementById('layerFleet').addEventListener('change', function(e) {
+            toggleLayer(fleetLayer, e.target.checked);
+        });
+        document.getElementById('layerHubs').addEventListener('change', function(e) {
+            toggleLayer(hubsLayer, e.target.checked);
+        });
+        ['layerRest', 'layerFuelServices', 'layerTireServices', 'layerFoodServices'].forEach(id => {
+            document.getElementById(id).addEventListener('change', function() {
+                applyAmenities(currentPayload.amenity_markers || []);
+            });
+        });
+        document.getElementById('layerWeather').addEventListener('change', function(e) {
+            toggleLayer(weatherLayer, e.target.checked);
+        });
+        document.getElementById('layerClosures').addEventListener('change', function(e) {
+            toggleLayer(closuresLayer, e.target.checked);
+        });
+        document.getElementById('layerHeatmap').addEventListener('change', function(e) {
+            const legend = document.getElementById('heatmapLegend');
+            if (e.target.checked) {
+                if (heatLayer) heatLayer.addTo(map);
+                legend.style.display = 'block';
+            } else {
+                if (heatLayer && map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+                legend.style.display = 'none';
+            }
+        });
+        map.on('zoomend moveend', function() {
+            applyFleet(currentPayload.trucks || []);
+            applyAmenities(currentPayload.amenity_markers || []);
+        });
+    }
+
+    async function syncGeoLive() {
+        updateSyncBadge(currentPayload.meta, 'Sincronizando capas...');
+        try {
+            const response = await fetch(buildGeoLiveUrl());
+            const payload = await response.json();
+            renderPayload(payload);
+        } catch (error) {
+            console.error('Error actualizando dashboard geoespacial:', error);
+            updateSyncBadge(currentPayload.meta, 'Sincronización parcial');
+            setTimeout(() => updateSyncBadge(currentPayload.meta), 2500);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Inicializar el mapa inmediatamente para que ocupe el espacio
         initMap();
-        
-        // Invalidar el tamaño del mapa un poco después de que Bootstrap termine de pintar
-        // Esto fuerza a Leaflet a recalcular las dimensiones del contenedor
         setTimeout(() => {
             if(map) map.invalidateSize();
         }, 500); 
-
-        setTimeout(autoSync, 15000);
+        setTimeout(() => {
+            syncGeoLive();
+            setInterval(syncGeoLive, 15000);
+        }, 1200);
     });
 </script>
 {% endblock %}
