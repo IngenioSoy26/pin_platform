@@ -85,6 +85,8 @@ DB_HOST=localhost
 DB_PORT=5432
 ```
 
+Nota Windows: si PostgreSQL fue instalado localmente, PIN intenta detectar automaticamente su carpeta `bin` para encontrar `libpq.dll` (por ejemplo `C:\Postgres\bin` o `C:\Program Files\PostgreSQL\<version>\bin`). Si tu instalacion usa otra ruta, puedes definirla con la variable de entorno `POSTGRES_BIN`.
+
 ## 6) Inicializar la base de datos
 
 Ejecuta:
