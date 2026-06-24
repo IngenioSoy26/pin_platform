@@ -37,7 +37,8 @@ ml_models/*.json
 
 # Datasets pesados
 dataset/
-data/
+data/*
+!data/.gitkeep
 
 # OS
 .DS_Store
