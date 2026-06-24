@@ -110,6 +110,8 @@ Se diseno y construyo la estructura modular del proyecto, junto con el modelo de
 
 Se definieron dashboards, mapas, KPIs, logicas de simulacion, reglas de alerta y bases para modelos predictivos.
 
+En esta fase tambien se consolido la analitica geoespacial asociada a la calidad de la infraestructura vial. En particular, se incorporo el concepto de rugosidad de carretera como variable operacional relevante para el transporte de carga, porque impacta confort, desgaste de llantas, fatiga mecanica y riesgo de mantenimiento no programado. Esta linea se materializo posteriormente en una capa tematica dentro del mapa operativo, alimentada por informacion HPMS/IRI y por mecanismos de fallback cuando no existe cobertura geometrica completa en la base local.
+
 ### 6.4 Fase 4. Integracion, evaluacion y presentacion final
 
 Se integraron ETL, mapas, dashboards e ingesta IoT, y se genero la presente documentacion como soporte de cierre y presentacion del sistema.
@@ -249,7 +251,23 @@ Se construyo una vista de soporte operacional con:
 
 ### 10.5 Mapa operativo
 
-Se agrego una capa tematica de rugosidad con gradiente rojo, desacoplada de la flota y soportada por endpoint GeoJSON.
+Se agrego una capa tematica de rugosidad vial como complemento del mapa operativo. Esta capa no depende del movimiento de la flota ni se dibuja segun la posicion instantanea de los vehiculos; por el contrario, se renderiza como una superposicion completa sobre la red vial para que el usuario pueda interpretar el estado del corredor antes o durante la operacion.
+
+La logica funcional de esta capa parte del enfoque HPMS/IRI:
+
+- `HPMS` aporta el inventario de segmentos y la referencia federal para calidad de infraestructura;
+- `IRI` (International Roughness Index) se toma como indicador tecnico de irregularidad superficial;
+- la plataforma traduce ese valor a clases de rugosidad entendibles en el mapa;
+- cuando no existe geometria HPMS suficiente en la base local, se usa un fallback controlado sobre la red vial disponible para no perder continuidad visual.
+
+Desde el punto de vista de negocio, la rugosidad se incluyo porque agrega valor real a la toma de decisiones:
+
+- ayuda a identificar tramos potencialmente agresivos para llantas y suspension;
+- aporta contexto al analisis de desgaste y mantenimiento;
+- mejora la lectura operativa de un corredor al combinar infraestructura, amenidades y eventos externos;
+- fortalece la parte academica del proyecto al conectar visualizacion, datos geoespaciales y analitica vial.
+
+En terminos de implementacion, la capa fue ajustada para que funcionara como un componente independiente del mapa, evitando el efecto visual de "trazo dinamico" que antes podia confundirse con la trayectoria de los camiones. El resultado final es una lectura mas profesional: la flota se visualiza como flota y la rugosidad se visualiza como condicion del corredor.
 
 ### Imagen sugerida
 
@@ -258,6 +276,7 @@ Se agrego una capa tematica de rugosidad con gradiente rojo, desacoplada de la f
 - `Figura 10. Dashboard IoT y sensores criticos`
 - `Figura 11. Dashboard geoespacial con amenidades, clima y cierres`
 - `Figura 12. Mapa operativo con capa de rugosidad`
+- Contenido recomendado para la figura de rugosidad: tramo vial coloreado por severidad, con leyenda visual y contraste frente a la capa de flota.
 
 ## 11. API, Integracion IoT y Analitica
 
