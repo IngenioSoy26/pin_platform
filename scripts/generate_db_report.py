@@ -79,11 +79,13 @@ def generate_markdown():
         
         md += "\n<br>\n\n"
 
-    # Guardar en archivo
-    os.makedirs('docs', exist_ok=True)
-    with open('docs/INFORME_BASE_DATOS.md', 'w', encoding='utf-8') as f:
+    # Guardar en la carpeta principal de documentos de entrega
+    output_dir = os.path.join('docs', '01_entrega')
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, 'INFORME_BASE_DATOS.md')
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write(md)
 
 if __name__ == "__main__":
     generate_markdown()
-    print("Informe generado exitosamente en docs/INFORME_BASE_DATOS.md")
+    print("Informe generado exitosamente en docs/01_entrega/INFORME_BASE_DATOS.md")

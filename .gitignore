@@ -35,10 +35,22 @@ ml_models/*.pkl
 ml_models/*.joblib
 ml_models/*.json
 
-# Datasets pesados
+# Datasets y archivos locales auxiliares
 dataset/
-data/*
+dataset.rar
+data/
+!data/
 !data/.gitkeep
+!data/README.md
+!data/*.csv
+!data/*.geojson
+!data/*.xlsx
+
+# Archivos locales que no deben publicarse
+.env_otro
+Manual.pdf
+PIN Platform.md
+chat-*.txt
 
 # OS
 .DS_Store

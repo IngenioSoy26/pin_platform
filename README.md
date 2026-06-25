@@ -26,13 +26,19 @@ Estado estimado respecto al plan maestro:
 
 ## Documentacion principal
 
-La documentacion entregable del proyecto se encuentra en `docs/`:
+La documentacion del proyecto se encuentra ordenada en `docs/` por tipo:
 
-- `MANUAL_INSTALACION_LOCAL.md` (instalacion local paso a paso)
-- `MEMORIA_FINAL_PRESENTACION.md` (documento principal)
-- `INFORME_BASE_DATOS.md` (soporte del modelo de datos)
-- `FUENTES_DATASETS.md` (portales y citacion)
-- `ANEXO_E_TABLA_DATASETS.md` (tabla consolidada por archivo)
+- `docs/README.md` indice general de la documentacion
+- `docs/01_entrega/` documentos principales de entrega
+- `docs/02_fases/` trazabilidad historica por fases
+
+Documentos principales:
+
+- `docs/01_entrega/MANUAL_INSTALACION_LOCAL.md` (instalacion local paso a paso)
+- `docs/01_entrega/MEMORIA_FINAL_PRESENTACION.md` (documento principal)
+- `docs/01_entrega/INFORME_BASE_DATOS.md` (soporte del modelo de datos)
+- `docs/01_entrega/FUENTES_DATASETS.md` (portales y citacion)
+- `docs/01_entrega/ANEXO_E_TABLA_DATASETS.md` (tabla consolidada por archivo)
 
 ## Requisitos recomendados
 
