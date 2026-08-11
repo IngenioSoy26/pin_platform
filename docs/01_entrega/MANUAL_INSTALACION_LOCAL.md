@@ -245,13 +245,16 @@ Importante:
 
 ## 8. Crear la base de datos en PostgreSQL
 
+Importante: el manual usa un nombre generico para la base (`truck_routes_db`) como ejemplo por defecto. Sin embargo, el entorno oficial del proyecto usa **`pin_database`**. Elige uno y mantenlo. Ambos nombres son validos, pero debes ser consistente en el `.env` y en todas las conexiones.
+
 En PostgreSQL crea una base vacia, por ejemplo:
 
-- nombre: `truck_routes_db`
+- nombre recomendado: **`pin_database`**
+- nombre de ejemplo alternativo (por defecto en los settings sin `.env`): `truck_routes_db`
 - usuario: `postgres`
 - puerto: `5432`
 
-Despues activa PostGIS en esa base:
+Despues activa PostGIS en esa base (solo si usaras `DB_ENGINE=postgis`; si usas `DB_ENGINE=postgresql` lo puedes omitir):
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS postgis;
@@ -259,7 +262,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 ## 9. Crear el archivo `.env` para PostgreSQL/PostGIS
 
-Crea o reemplaza el archivo `.env` con este contenido:
+Crea o reemplaza el archivo `.env` con este contenido (ajusta el nombre de la base segun el paso anterior). Se recomienda **`pin_database`**:
 
 ```env
 DB_ENGINE=postgis
@@ -270,11 +273,17 @@ ALLOWED_HOSTS=127.0.0.1,localhost
 LANGUAGE_CODE=es-co
 TIME_ZONE=America/Bogota
 
-DB_NAME=truck_routes_db
+DB_NAME=pin_database
 DB_USER=postgres
 DB_PASSWORD=tu_password
 DB_HOST=localhost
 DB_PORT=5432
+```
+
+Si en tu instalacion prefieres mantener el nombre de ejemplo del manual, usa:
+
+```env
+DB_NAME=truck_routes_db
 ```
 
 Si PostgreSQL no esta instalado en la ruta habitual, agrega tambien:
@@ -326,7 +335,80 @@ Si estan en otra carpeta:
 python manage.py cargar_datos_csv --dir "C:\ruta\absoluta\a\mis_datasets"
 ```
 
-### 11.3. Sincronizacion HPMS opcional
+### 11.3. Carga rapida de rutas NHS (GeoJSON de National Highway System)
+
+El archivo `data/NTAD_National_Highway_System_-2908344783259962276.geojson` **NO se inserta automaticamente** en `routes_highwayroute` por el ETL general. Ese archivo es un GeoJSON de red vial extenso (cientos de miles de segmentos). Para cargarlo en la base y que las rutas aparezcan en las vistas, tienes un metodo oficial y uno SQL alternativo.
+
+#### Metodo 1 (RECOMENDADO y MAS RAPIDO). Comando Django oficial.
+
+Funciona en **SQLite** y **PostgreSQL**, **no requiere PostGIS** porque `routes_highwayroute.route_geometry` es de tipo `jsonb` (el comando hace todo el mapeo y la consolidacion por estado y signo vial).
+
+1. Asegurate de tener en `data/` el archivo GeoJSON (si lo tienes en otra ruta, pasala como primer argumento):
+   - `pin_platform\data\NTAD_National_Highway_System_-2908344783259962276.geojson`
+
+2. Ejecuta la primera vez una **prueba rapida de humo** con 5.000 segmentos para confirmar que todo escribe sin errores:
+
+```powershell
+python manage.py cargar_nhs_geojson --limit 5000
+```
+
+3. Cuando la prueba de humo sea correcta, carga el archivo completo **sin limitar**:
+
+```powershell
+python manage.py cargar_nhs_geojson
+```
+
+Opciones utiles (todas compatibles con SQLite y PostgreSQL):
+
+```powershell
+# Ruta absoluta (si el archivo NO esta en data/)
+python manage.py cargar_nhs_geojson "C:/ruta/al/NHS.geojson"
+
+# Reinicia la tabla destino y carga de cero (borra rutas antiguas NHS)
+python manage.py cargar_nhs_geojson --reset
+
+# 1 fila en routes_highwayroute POR CADA SEGMENTO (no agrupa por estado/signo)
+python manage.py cargar_nhs_geojson --no-merge
+
+# Solo crea staging, no toca routes_highwayroute
+python manage.py cargar_nhs_geojson --staging-only
+
+# Menor lote para equipos con poca RAM
+python manage.py cargar_nhs_geojson --batch 2000
+```
+
+Resultados esperados:
+- `routes_nhs_geojson_staging`: una fila por feature del GeoJSON (staging auditoria).
+- `routes_highwayroute`: rutas consolidadas por `ESTADO + SIGN1` (ej: `CA-I-5`, `TX-US-75`, ...).
+- Salida de ejemplo del comando: `N filas en staging`, `M filas en routes_highwayroute`, top 10 estados por cantidad y km.
+
+#### Metodo 2 (alternativo SQL COPY / pgAdmin).
+
+Si prefieres cargarlo rapidamente desde pgAdmin o psql sin ejecutar Python a nivel comando, usa el script auxiliar que se incluye en el repositorio:
+
+- [cargar_nhs_rapido.sql](../sql/cargar_nhs_rapido.sql)
+
+Sigue las instrucciones del bloque de comentarios al inicio del propio `.sql` y recuerda:
+1. primero genera el CSV plano en PowerShell (el bloque Python del comentario del SQL);
+2. luego `\copy` a staging o importalo con pgAdmin;
+3. finaliza ejecutando el bloque E (UPSERT) del SQL.
+
+#### Verificacion rapida de la carga NHS
+
+```sql
+SELECT COUNT(*) AS n_staging  FROM routes_nhs_geojson_staging;
+SELECT COUNT(*) AS n_rutas    FROM routes_highwayroute;
+
+SELECT state,
+       COUNT(*)                                   AS n_rutas,
+       ROUND(SUM(length_km)::numeric, 0)         AS km_total
+FROM   routes_highwayroute
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 15;
+```
+
+### 11.4. Sincronizacion HPMS opcional
 
 Si tambien descargaste el archivo maestro de HPMS:
 
